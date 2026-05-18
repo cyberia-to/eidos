@@ -1,0 +1,17 @@
+[package]
+name        = "eidos"
+description = "eidos proof assistant CLI"
+version.workspace    = true
+edition.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+
+[[bin]]
+name = "eidos"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+cyber-eidos = { path = "../rs" }

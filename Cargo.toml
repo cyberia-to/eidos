@@ -1,0 +1,15 @@
+[workspace]
+members  = ["rs", "cli"]
+resolver = "2"
+
+[workspace.package]
+version  = "0.1.0"
+edition  = "2021"
+authors  = ["cyber"]
+license  = "MIT"
+
+[workspace.lints.rust]
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unused_async = "warn"

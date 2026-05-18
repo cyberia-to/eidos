@@ -1,0 +1,16 @@
+[package]
+name        = "cyber-eidos"
+description = "eidos proof assistant — CIC kernel over Goldilocks"
+version.workspace    = true
+edition.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# nox noun encoding / field arithmetic — path will point to ~/cyber/nox/rs once linked
+# cyber-nox  = { path = "../../nox/rs" }
+# hemera hash
+# cyber-hemera = { path = "../../hemera/rs" }

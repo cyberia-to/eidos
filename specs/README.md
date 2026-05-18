@@ -1,3 +1,9 @@
+---
+tags: eidos, spec
+crystal-type: spec
+crystal-domain: eidos
+status: draft
+---
 # eidos reference
 
 canonical specification of the eidos proof assistant. this is the source of truth — when code and reference disagree, fix reference first, then propagate to code.
@@ -7,11 +13,12 @@ canonical specification of the eidos proof assistant. this is the source of trut
 | page | scope | status |
 |------|-------|--------|
 | terms.md | CIC term syntax, encoding as nox nouns, universe hierarchy | draft |
-| kernel.md | type checker patterns: infer(), check(), CIC rules as nox | draft |
-| surface.md | surface proof syntax, elaboration rules, implicit arguments | draft |
-| tactics.md | tactic set: intro, apply, exact, omega, simp, induction | draft |
-| stdlib.md | standard library: Nat, Bool, List, Vec, Fin, basic theorems | draft |
+| kernel.md | type checker: infer(), check(), all CIC rules as nox patterns | draft |
+| surface.md | surface syntax, elaboration, implicit arguments | draft |
+| tactics.md | tactic set, proof state, combinators | draft |
+| stdlib.md | standard library: Nat, Bool, List, Vec, Fin, core theorems | draft |
 | certificate.md | proof certificate format, STARK wrapping, cyberlink schema | draft |
+| interaction.md | display layer: proof state format, queries, errors, rename | draft |
 
 ## reading order
 
@@ -21,14 +28,15 @@ canonical specification of the eidos proof assistant. this is the source of trut
 4. tactics.md — the tactic engine (how users construct proofs)
 5. stdlib.md — the standard library (reusable theorems)
 6. certificate.md — the output format (how proofs enter the cybergraph)
+7. interaction.md — the display layer (proof state, queries, errors)
 
 ## architecture
 
 eidos has two layers with different trust properties:
 
-**trusted kernel** — written directly as nox patterns. ~2,500 LOC of nox IR encoding ~200 CIC typing rules. this is the TCB. no Trident, no Rs — any compiler in the trust chain is a liability.
+trusted kernel — written directly as nox patterns. target: ~2,500 nox IR nodes encoding 9 CIC typing rules (one per term constructor). this is the TCB. no Trident, no Rs — any compiler in the trust chain is a liability.
 
-**untrusted shell** — elaborator + tactic engine written in Rs. produces kernel terms that the trusted kernel then checks. if the shell is buggy, the kernel rejects the output. the shell cannot forge proofs.
+untrusted shell — elaborator + tactic engine written in Rs. produces kernel terms that the trusted kernel then checks. if the shell is buggy, the kernel rejects the output. the shell cannot forge proofs.
 
 this separation mirrors the Lean 4 kernel/elaborator split, but the trust boundary is enforced by the nox execution model, not by convention.
 

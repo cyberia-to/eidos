@@ -540,16 +540,17 @@ all files that have it — it is not decoration.
 
 ## what nox is
 
-nox is the virtual machine of cyber. sixteen deterministic reduction patterns over
-the Goldilocks field, plus one non-deterministic hint pattern and five jets. every
-computation produces a stark proof of correct execution as a byproduct. running a
-program and proving it ran correctly are the same act.
+nox is the virtual machine of cyber. 18 patterns total over the Goldilocks field: 16
+deterministic compute patterns plus call (pattern 16, non-deterministic witness injection)
+and look (pattern 17, deterministic BBG read), plus five jets. every computation produces
+a stark proof of correct execution as a byproduct. running a program and proving it ran
+correctly are the same act.
 
 ## architecture
 
 ```
-Layer 1: 16 deterministic patterns (Turing-complete + field arithmetic + bitwise + hash)
-Layer 2: hint (non-deterministic witness injection, verified by Layer 1 constraints)
+Layer 1: 16 deterministic compute patterns (Turing-complete + field arithmetic + bitwise + hash)
+Layer 2: call (16, non-deterministic witness injection) + look (17, deterministic BBG read)
 Layer 3: 5 jets (hash, poly_eval, merkle_verify, fri_fold, ntt) — optimization only
 ```
 
