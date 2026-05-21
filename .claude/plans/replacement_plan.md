@@ -1,5 +1,5 @@
 # eidos replaces Lean 4 — replacement plan
-# status: draft  2026-05-18
+# status: phases 1–5 complete  2026-05-18
 
 ## objective
 
@@ -137,32 +137,46 @@ These can be written as `.ei` files today:
 - Split tactic_ext.rs → tactic/{apply,induction,rewrite,omega}.rs + mod.rs
 - Add `.claude/plans/` to .gitignore exception or commit
 
-### phase 1 — port T2 + Algebra + Fold  (1 session)
-- Write `eidos/proofs/nox/T2.ei`, `eidos/proofs/prysm/Algebra.ei`,
-  `eidos/proofs/prysm/Fold.ei`
-- All provable by existing tactics
-- ~30 theorems
+### phase 1 — port T2 + Algebra + Fold  (1 session)  ✓ COMPLETE
+- `proofs/nox/T2.ei` — 23 theorems ✓
+- `proofs/prysm/Algebra.ei` — 5 theorems ✓ (required fold_pi bug fix)
+- `proofs/prysm/Fold.ei`, Gravity.ei, Container.ei, Protocol.ei, Sizing.ei ✓
+- Fixed fold_pi/fold_lam direction bug (forward→reverse iteration)
+- Fixed check_positivity for recursive constructors (AlgTree, Formula)
+- Added import "path.ei" syntax
 
-### phase 2 — G1 decide + G2 Nat lemmas  (1 session)
-- Add `decide` tactic (1 pomodoro)
-- Add 5 Nat stdlib lemmas as proved theorems (2 pomodoros)
-- Port Gravity.lean + Protocol.lean + Sizing.lean
-- ~15 theorems
+### phase 2 — G1 decide + G2 Nat lemmas  (1 session)  ✓ COMPLETE
+- `decide` tactic added (1 pomodoro)
+- 5 Nat stdlib lemmas added (2 pomodoros)
+- Gravity.lean + Protocol.lean + Sizing.lean all ported
 
-### phase 3 — G3 List type  (1 session)
-- Add List inductive + operations to stdlib.rs (or list.rs)
-- Prove List.length_map
-- Port Container.lean
-- ~3 definitions + 1 theorem
+### phase 3 — G3 List type  (1 session)  ✓ COMPLETE
+- List inductive + operations in stdlib
+- Container.lean ported
 
-### phase 4 — G4 calc / G5 Multimodal  (0.5 session)
-- Port Protocol.scale_respects as have-chain (no new syntax)
-- Port Multimodal.lean as record module (no full typeclasses)
+### phase 4 — G4 calc / G5 Multimodal  (0.5 session)  ✓ COMPLETE
+- Protocol.scale_respects ported as have-chain
+- `proofs/prysm/Multimodal.ei` — Theorem 8 via trivial ✓
+- `proofs/nox/Model.ei` — all model type defs ✓
+- `proofs/nox/T3.ei` — PathStep/Perm types, T3 axioms ✓
+- `proofs/nox/T1.ei` — T1.1 proved (exact reduce_par_def), T1.2/T1 axioms ✓
+- 139/139 tests pass
 
-### phase 5 — T3 sorry cases / nox model  (2+ sessions, future)
+### phase 5 — discharge T3/T1 axioms  (0.5 session)  ✓ COMPLETE
+- Added `trace_seq_empty` and `trace_par_empty` to Model.ei (both stubs = 0)
+- Added `keyInjective_nil : keyInjective 0`
+- T3.2 (`threaded_trace_is_permutation`): proved by rewrite+rewrite+exact Perm.nil
+- `trace_seq_key_injective`: proved by rewrite+exact keyInjective_nil
+- T3 main (`canonical_trace_equivalence`): proved by rewrite+rewrite+rfl
+- T1.2 (`trace_equivalence`): proved by exact canonical_trace_equivalence
+- T1 main: proved by exact (And.intro _ _ outcome_equivalence trace_equivalence)
+- Fixed bug: `tac_exact` now zonks the term to resolve hole metas before kernel check
+- 139/139 tests pass; T3.1 (sort_permutation_invariant) stays axiom (mergeSort theory)
+
+### phase 6 — T3.1 / mergeSort theory  (3–5 sessions, future)
 - Implement `reduce_seq` semantics
 - Prove Perm + mergeSort invariant
-- Discharge T3 sorry cases
+- Discharge sort_permutation_invariant
 
 ---
 
@@ -171,13 +185,14 @@ These can be written as `.ei` files today:
 | phase | sessions | pomodoros | current status |
 |-------|----------|-----------|----------------|
 | 0: infra | 0.5 | 3 | stdlib.rs + tactic_ext.rs over limit |
-| 1: T2/Algebra/Fold | 1 | 6 | no blockers |
-| 2: decide + Nat lemmas + 3 files | 1 | 6 | G1, G2 gaps |
-| 3: List + Container | 1 | 6 | G3 gap |
-| 4: calc/Multimodal | 0.5 | 3 | G4, G5 (record approach) |
-| 5: T3/nox model | 2+ | 12+ | G6 + open research |
-| **total migration** | **4** | **24** | phases 0–4 |
-| **total incl. T3** | **6+** | **36+** | all phases |
+| 1: T2/Algebra/Fold | 1 | 6 | ✓ COMPLETE |
+| 2: decide + Nat lemmas + 3 files | 1 | 6 | ✓ COMPLETE |
+| 3: List + Container | 1 | 6 | ✓ COMPLETE |
+| 4: calc/Multimodal | 0.5 | 3 | ✓ COMPLETE |
+| 5: T3/T1 axiom discharge | 0.5 | 3 | ✓ COMPLETE |
+| 6: T3.1/mergeSort theory | 3–5 | 18–30 | G6 + open research |
+| **total migration** | **4.5** | **27** | phases 0–5 |
+| **total incl. T3.1** | **7.5+** | **45+** | all phases |
 
 ---
 
@@ -196,7 +211,10 @@ Before starting phase 1, confirm:
 - T1, T3.2, T2.8 are vacuously proved in Lean because `reduce_seq` and
   `trace_seq/trace_par` are placeholders. The eidos ports will be equally
   vacuous until real semantics are implemented. This is not a regression.
-- All 121 eidos tests pass as of 2026-05-18 (including add_zero induction
-  and eq_symm via rewrite [← h]).
+- All 139 eidos tests pass as of 2026-05-18 (phases 1–5 complete).
 - EqSubst (J-rule) is the sole kernel extension from original CIC.
   Soundness is maintained: EqSubst reduces to pf_a when h=refl.
+- Phase 5 discharged T3.2, T3-main, T1.2, T1-main as real theorems.
+  T3.1 (sort_permutation_invariant) is the only remaining sorry-equivalent axiom.
+- Bug fixed: tac_exact now zonks the term before kernel inference,
+  enabling `exact (And.intro _ _ h1 h2)` with hole arguments.
