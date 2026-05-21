@@ -98,7 +98,8 @@ fn run_one(
 
         Tactic::Exact(expr) => {
             let (term, _) = elab_in_goal(st, env, ps, expr)?;
-            tac_exact(ps, term)?;
+            let term_z = st.mctx.zonk(&term);
+            tac_exact(ps, term_z)?;
         }
 
         Tactic::Apply(expr) => {

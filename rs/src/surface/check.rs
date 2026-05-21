@@ -332,6 +332,51 @@ mod tests {
         let src = include_str!("../../../proofs/prysm/Fold.ei");
         run(src).expect("Fold.ei should check");
     }
+
+    #[test]
+    fn proof_file_model() {
+        let src = include_str!("../../../proofs/nox/Model.ei");
+        run(src).expect("Model.ei should check");
+    }
+
+    #[test]
+    fn proof_file_t3() {
+        let path = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"), "/../proofs/nox/T3.ei"
+        ));
+        let mut env = crate::stdlib::std_env();
+        let mut st  = ElabState::new();
+        st.add_stdlib();
+        super::check_path(path, &mut st, &mut env)
+            .map_err(|(n, e)| format!("{n}: {e}"))
+            .expect("T3.ei should check");
+    }
+
+    #[test]
+    fn proof_file_t1() {
+        let path = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"), "/../proofs/nox/T1.ei"
+        ));
+        let mut env = crate::stdlib::std_env();
+        let mut st  = ElabState::new();
+        st.add_stdlib();
+        super::check_path(path, &mut st, &mut env)
+            .map_err(|(n, e)| format!("{n}: {e}"))
+            .expect("T1.ei should check");
+    }
+
+    #[test]
+    fn proof_file_multimodal() {
+        let path = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"), "/../proofs/prysm/Multimodal.ei"
+        ));
+        let mut env = crate::stdlib::std_env();
+        let mut st  = ElabState::new();
+        st.add_stdlib();
+        super::check_path(path, &mut st, &mut env)
+            .map_err(|(n, e)| format!("{n}: {e}"))
+            .expect("Multimodal.ei should check");
+    }
 }
 
 fn decl_name(d: &SurfaceDecl) -> Option<&str> {
