@@ -27,14 +27,16 @@ pub fn run() {
     let stdin  = io::stdin();
     let stdout = io::stdout();
 
-    println!("eidos proof assistant  (type :help for commands, :quit to exit)");
+    print!("{}", crate::banner());
+    println!("  {}", crate::dim("interactive · :help for commands · :quit to exit"));
 
+    let prompt = format!("{}{} ", crate::cyan("eidos"), crate::dim("›"));
     let mut buf = String::new();
     loop {
         // Print prompt
         {
             let mut out = stdout.lock();
-            write!(out, "eidos> ").unwrap();
+            write!(out, "{prompt}").unwrap();
             out.flush().unwrap();
         }
 
@@ -108,8 +110,8 @@ fn cmd_check_expr(src: &str, env: &Env, st: &mut ElabState) {
         return;
     }
     match elaborate_expr(src, env, st) {
-        Ok((_, ty)) => println!(": {}", pretty::pp(&ty)),
-        Err(e) => eprintln!("error: {e}"),
+        Ok((_, ty)) => println!("  {} {}", crate::dim(":"), crate::cyan(&pretty::pp(&ty))),
+        Err(e) => eprintln!("  {}: {e}", crate::red("error")),
     }
 }
 
@@ -123,9 +125,14 @@ fn cmd_eval_expr(src: &str, env: &Env, st: &mut ElabState) {
             let ctx = vec![];
             let nf_term = nf(env, &ctx, term);
             let nf_ty   = nf(env, &ctx, ty);
-            println!("{} : {}", pretty::pp(&nf_term), pretty::pp(&nf_ty));
+            println!(
+                "  {} {} {}",
+                crate::green(&pretty::pp(&nf_term)),
+                crate::dim(":"),
+                crate::cyan(&pretty::pp(&nf_ty)),
+            );
         }
-        Err(e) => eprintln!("error: {e}"),
+        Err(e) => eprintln!("  {}: {e}", crate::red("error")),
     }
 }
 
@@ -137,7 +144,7 @@ fn cmd_show_env(_env: &Env, st: &ElabState) {
         names.sort_unstable();
         for name in names {
             if let Some((_, ty)) = st.globals.get(name) {
-                println!("  {name} : {}", pretty::pp(ty));
+                println!("  {} {} {}", crate::bold(name), crate::dim(":"), crate::dim(&pretty::pp(ty)));
             }
         }
     }
@@ -165,15 +172,17 @@ fn process_input(src: &str, env: &mut Env, st: &mut ElabState) {
     match check_file(&decls, st, env) {
         Ok(results) => {
             for r in results {
+                let ty = crate::dim(&pretty::pp(&r.ty));
+                let nm = crate::bold(&r.name);
                 match r.kind {
-                    DeclKind::Def       => println!("def {}  : {}", r.name, pretty::pp(&r.ty)),
-                    DeclKind::Theorem   => println!("proved  : {} : {}", r.name, pretty::pp(&r.ty)),
-                    DeclKind::Axiom     => println!("axiom   : {} : {}", r.name, pretty::pp(&r.ty)),
-                    DeclKind::Inductive => println!("inductive: {}", r.name),
+                    DeclKind::Def       => println!("  {} {} {} {}", crate::dim("def      "), nm, crate::dim(":"), ty),
+                    DeclKind::Theorem   => println!("  {} {} {} {}", crate::green("proved   "), nm, crate::dim(":"), ty),
+                    DeclKind::Axiom     => println!("  {} {} {} {}", crate::yellow("axiom    "), nm, crate::dim(":"), ty),
+                    DeclKind::Inductive => println!("  {} {}", crate::magenta("inductive"), nm),
                 }
             }
         }
-        Err((name, err)) => eprintln!("error in '{name}': {err}"),
+        Err((name, err)) => eprintln!("  {}: in '{name}': {err}", crate::red("error")),
     }
 }
 

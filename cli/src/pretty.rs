@@ -62,6 +62,15 @@ fn pp_prec(t: &Term, prec: u8) -> String {
         Term::Elim(id, _m, _cs, tg) => {
             paren(prec > 5, format!("@elim[{}] {}", ind_name(*id), pp_prec(tg, 10)))
         }
+
+        // EqSubst (the J-rule): transport `base : P a` along `eq : a = b` to `P b`.
+        Term::EqSubst(motive, eq, base) => paren(
+            prec > 5,
+            format!("@subst {} {} {}", pp_prec(motive, 10), pp_prec(eq, 10), pp_prec(base, 10)),
+        ),
+
+        // Const: a reference to a global definition, shown by its id.
+        Term::Const(id) => format!("Const#{:#x}", id),
     }
 }
 
@@ -146,6 +155,11 @@ fn has_free_at(depth: u64, t: &Term) -> bool {
             has_free_at(depth, m)
             || cs.iter().any(|c| has_free_at(depth, c))
             || has_free_at(depth, tg),
+        // EqSubst introduces no binder at this node; check all three subterms.
+        Term::EqSubst(m, e, b) =>
+            has_free_at(depth, m) || has_free_at(depth, e) || has_free_at(depth, b),
+        // Const is a closed global reference — no free variables.
+        Term::Const(_) => false,
     }
 }
 
