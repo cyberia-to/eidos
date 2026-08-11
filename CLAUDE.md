@@ -543,7 +543,7 @@ all files that have it — it is not decoration.
 nox is the virtual machine of cyber. 18 patterns total over the Goldilocks field: 16
 deterministic compute patterns plus call (pattern 16, non-deterministic witness injection)
 and look (pattern 17, deterministic BBG read), plus five jets. every computation produces
-a stark proof of correct execution as a byproduct. running a program and proving it ran
+a zheng proof of correct execution as a byproduct. running a program and proving it ran
 correctly are the same act.
 
 ## architecture
