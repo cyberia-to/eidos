@@ -250,7 +250,7 @@ output when not found:
 no proof of <type> in cybergraph
 ```
 
-`#search` does not verify the STARK — it reports existence. use `#verify <axon>` to fetch and check the full certificate.
+`#search` does not verify the zheng proof — it reports existence. use `#verify <axon>` to fetch and check the full certificate.
 
 ### #verify
 

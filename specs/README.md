@@ -17,7 +17,7 @@ canonical specification of the eidos proof assistant. this is the source of trut
 | surface.md | surface syntax, elaboration, implicit arguments | draft |
 | tactics.md | tactic set, proof state, combinators | draft |
 | stdlib.md | standard library: Nat, Bool, List, Vec, Fin, core theorems | draft |
-| certificate.md | proof certificate format, STARK wrapping, cyberlink schema | draft |
+| certificate.md | proof certificate format, zheng wrapping, cyberlink schema | draft |
 | interaction.md | display layer: proof state format, queries, errors, rename | draft |
 
 ## reading order
@@ -57,6 +57,6 @@ key CIC features in scope:
 ## dependencies
 
 - nox (`~/cyber/nox/`) — runs the type checker kernel
-- zheng (`~/cyber/zheng/`) — wraps kernel execution in a STARK certificate
+- zheng (`~/cyber/zheng/`) — wraps kernel execution in a zheng certificate
 - hemera (`~/cyber/hemera/`) — content-addresses terms and cyberlink keys
 - bbg (`~/cyber/bbg/`) — stores proof cyberlinks in the graph state

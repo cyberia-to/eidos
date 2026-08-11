@@ -6,7 +6,7 @@ status: draft
 ---
 # certificate
 
-a proof certificate is the output of a completed eidos proof. it attests that a specific kernel checked a specific proof term and accepted it. the certificate is a [[zheng]] STARK proof of that kernel execution. it enters the [[cybergraph]] as a [[cyberlink]] — globally memoized, zero-cost to re-verify.
+a proof certificate is the output of a completed eidos proof. it attests that a specific kernel checked a specific proof term and accepted it. the certificate is a [[zheng]] proof of that kernel execution. it enters the [[cybergraph]] as a [[cyberlink]] — globally memoized, zero-cost to re-verify.
 
 ## what a certificate attests
 
@@ -16,7 +16,7 @@ a certificate for theorem `P` with proof `π` is evidence for:
 check_kernel(Σ, [], π, P) = Ok
 ```
 
-this is a nox execution. [[zheng]] certifies the execution trace, producing a STARK that anyone can verify with the zheng verifier — a short nox program running in ~825 constraints.
+this is a nox execution. [[zheng]] certifies the execution trace, producing a proof that anyone can verify with the zheng verifier — a short nox program running in ~825 constraints.
 
 ## proof artifact
 
@@ -27,7 +27,7 @@ ProofArtifact = {
   claim   : NounId,    -- hemera hash of the claim noun: CLAIM(P)
   proof   : NounId,    -- hemera hash of the proof noun: π
   kernel  : NounId,    -- hemera hash of the kernel formula noun
-  stark   : Bytes,     -- zheng STARK certificate bytes
+  stark   : Bytes,     -- zheng certificate bytes
   env_ref : NounId,    -- hemera hash of the global environment Σ used
 }
 ```
@@ -90,14 +90,14 @@ artifact_noun =
   cons(env_ref,
   stark_atom))))
 
-stark_atom = atom(hemera(stark_bytes))  -- the STARK is content-addressed; full bytes stored off-chain
+stark_atom = atom(hemera(stark_bytes))  -- the proof is content-addressed; full bytes stored off-chain
 ```
 
-the full STARK bytes are stored as a separate particle (content-addressed by their hemera hash). the artifact noun references the STARK by hash, keeping the on-chain footprint small.
+the full proof bytes are stored as a separate particle (content-addressed by their hemera hash). the artifact noun references the proof by hash, keeping the on-chain footprint small.
 
 ## zheng wrapping
 
-the STARK certifies the nox execution of `check(Σ_noun, CTX_EMPTY, π_noun, P_noun)`.
+the zheng proof certifies the nox execution of `check(Σ_noun, CTX_EMPTY, π_noun, P_noun)`.
 
 ### execution instance
 
@@ -112,11 +112,11 @@ instance = {
 }
 ```
 
-the STARK proves: "reducing object with formula produces result within budget."
+the proof attests: "reducing object with formula produces result within budget."
 
-### STARK format
+### proof format
 
-the STARK is a [[zheng]] Whirlaway proof:
+the certificate is a [[zheng]] Whirlaway proof:
 
 ```
 ZhengProof = {
@@ -137,7 +137,7 @@ Opening = {
 }
 ```
 
-all field elements are Goldilocks elements (8 bytes each). the STARK is approximately 2–4 KB for typical kernel executions.
+all field elements are Goldilocks elements (8 bytes each). the proof is approximately 2–4 KB for typical kernel executions.
 
 ### verifier algorithm
 
@@ -169,7 +169,7 @@ memo_lookup(P, kernel_id) =
 
 the cybergraph does not support wildcard queries directly. instead: query particles tagged with CLAIM(P) in namespace 0, check if any existing axon matches. if found: re-use the existing cyberlink. cost: one BBG lookup.
 
-if the prover wants to verify the existing certificate: fetch the ProofArtifact particle, recover the STARK, run `verify(instance, stark)`. this costs ~825 nox rows — constant time regardless of how complex the original proof was.
+if the prover wants to verify the existing certificate: fetch the ProofArtifact particle, recover the proof, run `verify(instance, stark)`. this costs ~825 nox rows — constant time regardless of how complex the original proof was.
 
 ## certificate pipeline
 
@@ -200,7 +200,7 @@ every accepted certificate produces a cyberlink in the global cybergraph. the cy
 - queries: given a claim noun, find all proofs of it
 - inter-operability: any neuron (human, AI, sensor, program) can submit proofs and read certificates
 
-the memoization invariant: if `axon → OK` exists in the cybergraph, then there exists a valid STARK attesting `check_kernel(π, P) = Ok`. re-proving the same theorem at the same kernel version costs zero network resources — the second prover reads the existing cyberlink.
+the memoization invariant: if `axon → OK` exists in the cybergraph, then there exists a valid zheng proof attesting `check_kernel(π, P) = Ok`. re-proving the same theorem at the same kernel version costs zero network resources — the second prover reads the existing cyberlink.
 
 ## versioning
 

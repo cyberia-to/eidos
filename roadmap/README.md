@@ -6,11 +6,11 @@ eidos has solid bones: Cargo workspace (`rs/` library + `cli/` binary), CIC kern
 
 The reference is `~/cyber/hemera/` (v0.3.0): workspace + clean public API + multi-command CLI + Diataxis docs + `specs/` + `roadmap/` + CHANGELOG + `vectors/` + LICENSE + GitHub Actions CI. v0.1.0 means: a third party can `cargo install`, read the README, follow a tutorial, write and check a proof, and trust the result.
 
-This plan delivers v0.1.0 in ~27 pomodoros (4–5 sessions), with explicit cuts so the release is **honest about scope**: no half-implemented subcommands, no claimed features that aren't ready, no overpromised STARK/cybergraph integration.
+This plan delivers v0.1.0 in ~27 pomodoros (4–5 sessions), with explicit cuts so the release is **honest about scope**: no half-implemented subcommands, no claimed features that aren't ready, no overpromised zheng/cybergraph integration.
 
 ## Pitch sentence (for README hero)
 
-> **eidos is a proof assistant whose type checker is a verifiable program — a small CIC kernel designed to be re-executed and certified by the nox VM, so every checked proof carries a path to its own STARK certificate.**
+> **eidos is a proof assistant whose type checker is a verifiable program — a small CIC kernel designed to be re-executed and certified by the nox VM, so every checked proof carries a path to its own zheng certificate.**
 
 For tighter contexts: cut after the em-dash.
 
@@ -38,7 +38,7 @@ For tighter contexts: cut after the em-dash.
 | `.github/workflows/ci.yml` | **ADD** | clippy `-D warnings`, fmt, tests, docs, **vectors** |
 | T3.1 `sort_permutation_invariant` axiom | **KEEP**, document | same gap as original Lean; honest in CHANGELOG |
 | Path deps to nox/hemera in `rs/Cargo.toml` | **KEEP commented** | eidos is stand-alone for v0.1.0 |
-| STARK proof generation, cybergraph link, LSP, T3.1 mergeSort theory | **DEFER** | tracked in `roadmap/` |
+| zheng proof generation, cybergraph link, LSP, T3.1 mergeSort theory | **DEFER** | tracked in `roadmap/` |
 | `bench/` crate | **DEFER** | no perf claim in v0.1.0 |
 | `nox model grounding` (Model.ei axiomatizes 4 ops) | **DEFER**, disclose | `docs/explanation/nox-model-status.md` is honest |
 
@@ -162,5 +162,5 @@ Pomodoro = 30 min. Total ≈ 27 pomodoros = 4.5 sessions.
 **Honesty checks**
 - [ ] T3.1 `sort_permutation_invariant` axiom disclosed in CHANGELOG
 - [ ] `certificate.rs` not in public re-exports
-- [ ] No claim of STARK certification, cybergraph integration, or LSP in README
+- [ ] No claim of zheng certification, cybergraph integration, or LSP in README
 - [ ] Model.ei axiomatization disclosed in `docs/explanation/nox-model-status.md`

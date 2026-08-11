@@ -1,4 +1,4 @@
-eidos (εἶδος — form, essence, type in ancient Greek) is the proof assistant for [[cyber]]. CIC type theory over [[Goldilocks field]] elements. the type checker is a [[nox]] program — executing it produces a [[zheng]] STARK certificate. every proved theorem becomes a [[cyberlink]] in the [[cybergraph]]. zero trusted setup. post-quantum. cybergraph-native.
+eidos (εἶδος — form, essence, type in ancient Greek) is the proof assistant for [[cyber]]. CIC type theory over [[Goldilocks field]] elements. the type checker is a [[nox]] program — executing it produces a [[zheng]] certificate. every proved theorem becomes a [[cyberlink]] in the [[cybergraph]]. zero trusted setup. post-quantum. cybergraph-native.
 
 eidos closes the loop: [[zheng]] proves execution correct, eidos proves programs correct. together they make [[cyber]] civilization-grade software possible.
 
@@ -10,7 +10,7 @@ CIC kernel         │ type checker as nox patterns      │ nox IR (~200 rules)
 elaborator         │ surface syntax → kernel terms     │ rs
 tactic engine      │ proof construction                │ rs
 standard library   │ Nat, Bool, List, Vec, theorems    │ eidos
-zheng bridge       │ wrap type check in STARK          │ rs
+zheng bridge       │ wrap type check in zheng          │ rs
 cybergraph bridge  │ store proof as cyberlink          │ rs
 ```
 
@@ -35,7 +35,7 @@ a TCB is the set of components whose correctness must be assumed rather than pro
 
 eidos TCB = 16 nox reduction patterns + [[zheng]] proof system math (SuperSpartan + Brakedown + sumcheck protocol).
 
-the CIC kernel encodes ~200 typing rules as nox patterns written by hand. executing the kernel on a claimed proof either accepts or rejects. [[zheng]] then certifies that execution itself was correct — producing a STARK certificate anyone can verify. the certificate attests: "nox ran these patterns on this term and accepted."
+the CIC kernel encodes ~200 typing rules as nox patterns written by hand. executing the kernel on a claimed proof either accepts or rejects. [[zheng]] then certifies that execution itself was correct — producing a certificate anyone can verify. the certificate attests: "nox ran these patterns on this term and accepted."
 
 the trust chain is: CIC rules (human-auditable nox patterns) → nox execution (16 deterministic reductions) → zheng certificate (proven-correct sumcheck). the elaborator and tactic engine sit outside this chain — they produce candidate terms that the kernel checks. a buggy elaborator produces a term the kernel rejects. it cannot produce a term the kernel falsely accepts.
 
