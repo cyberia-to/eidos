@@ -58,9 +58,9 @@ impl Term {
     pub fn type0() -> Self { Term::Sort(1) }
 
     /// prop_max: universe level arithmetic respecting PROP impredicativity.
-    /// prop_max(0, v) = 0, prop_max(u, 0) = 0, prop_max(u, v) = max(u, v).
+    /// Only a proposition-valued codomain makes the product a proposition.
     pub fn prop_max(u: Level, v: Level) -> Level {
-        if u == 0 || v == 0 { 0 } else { u.max(v) }
+        if v == 0 { 0 } else { u.max(v) }
     }
 
     /// True if the term contains no Meta nodes (safe for kernel).

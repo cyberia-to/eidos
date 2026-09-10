@@ -11,7 +11,7 @@ use cyber_eidos::{
     elab::{ElabState, elab_expr},
     reduce::nf,
     stdlib::std_env,
-    surface::{check_file, lex, parse_file, DeclKind},
+    surface::{check_file, check_strict_path, lex, parse_file, DeclKind},
 };
 
 // ── style ────────────────────────────────────────────────────────────────────
@@ -74,6 +74,7 @@ fn help_lines() -> String {
         ("repl", "interactive proof assistant"),
         ("eval <expr>", "reduce to normal form, show its type"),
         ("check <file.ei>", "elaborate + kernel-check all declarations"),
+        ("check --strict <file.ei>", "recheck Nat/Bool/Eq proofs and imports without admissions"),
         ("search <type>", "query cybergraph for existing proofs"),
         ("verify <axon>", "fetch and verify a proof certificate"),
     ];
@@ -144,6 +145,21 @@ fn cmd_eval(args: &[String]) {
 // ── check ────────────────────────────────────────────────────────────────────
 
 fn cmd_check(args: &[String]) {
+    if args.first().map(String::as_str) == Some("--strict") {
+        if args.len() != 2 { die("check", "usage: eidos check --strict <file.ei>"); }
+        let module = check_strict_path(std::path::Path::new(&args[1]))
+            .unwrap_or_else(|e| die("strict check", e));
+        let mut theorems = 0;
+        for decl in &module.declarations {
+            if decl.kind == DeclKind::Theorem {
+                theorems += 1;
+                println!("proved {}", decl.name);
+            }
+        }
+        println!("strict: {theorems} theorem(s), {} declaration(s), {} file(s); no admissions; Nat/Bool/Eq fragment",
+            module.declarations.len(), module.files.len());
+        return;
+    }
     let Some(path) = args.first() else {
         die("check", "missing file — usage: eidos check <file.ei>");
     };

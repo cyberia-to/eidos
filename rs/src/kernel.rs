@@ -489,7 +489,7 @@ mod tests {
     #[test]
     fn prop_max_laws() {
         assert_eq!(Term::prop_max(0, 0), 0);
-        assert_eq!(Term::prop_max(0, 5), 0);
+        assert_eq!(Term::prop_max(0, 5), 5);
         assert_eq!(Term::prop_max(5, 0), 0);
         assert_eq!(Term::prop_max(2, 3), 3);
     }

@@ -110,10 +110,6 @@ pub fn check_path(
     check_file_with_base(&decls, st, env, path.parent())
 }
 
-fn check_one(decl: &SurfaceDecl, st: &mut ElabState, env: &mut Env) -> Result<DeclResult, CheckError> {
-    check_one_with_base(decl, st, env, None)
-}
-
 fn check_one_with_base(decl: &SurfaceDecl, st: &mut ElabState, env: &mut Env, base_dir: Option<&Path>) -> Result<DeclResult, CheckError> {
     match decl {
         SurfaceDecl::Def { name, params, ty, body } => {
@@ -201,17 +197,15 @@ fn check_theorem(
             let closed_body = fold_lam(&param_types, proof_z);
             let closed_ty   = fold_pi (&param_types, ty_z.clone());
             st.globals.insert(name.to_string(), (closed_body, closed_ty.clone()));
-            return Ok(DeclResult { name: name.to_string(), kind: DeclKind::Theorem, ty: closed_ty });
+            Ok(DeclResult { name: name.to_string(), kind: DeclKind::Theorem, ty: closed_ty })
         }
-        Err(RunError::Sorry(msg)) => eprintln!("warning: sorry in '{name}': {msg}"),
-        Err(e) => return Err(CheckError::from(e)),
+        Err(RunError::Sorry(msg)) => {
+            for _ in 0..n_params { st.pop(); }
+            Err(CheckError::Sorry(msg))
+        }
+        Err(e) => Err(CheckError::from(e)),
     }
 
-    // Close over params (sorry path: accept as axiom with body = type)
-    for _ in 0..n_params { st.pop(); }
-    let closed_ty = fold_pi(&param_types, ty_z);
-    st.globals.insert(name.to_string(), (closed_ty.clone(), closed_ty.clone()));
-    Ok(DeclResult { name: name.to_string(), kind: DeclKind::Theorem, ty: closed_ty })
 }
 
 fn elab_def_term(

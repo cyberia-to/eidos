@@ -16,6 +16,13 @@ cybergraph bridge  │ store proof as cyberlink          │ rs
 
 ## CIC type theory
 
+For the implemented Rust checking path, run
+`cargo run -- check --strict ../hemera/proofs/Inverse.ei`. It rechecks closed
+proof terms and transitive imports without admissions. See
+[strict checking](specs/strict-checking.md) for the Nat/Bool/Eq fragment and
+its actual trusted base. General validated inductives, binary field arithmetic
+and nox/zheng certification are subsequent obligations.
+
 the Calculus of Inductive Constructions is a formal system where types and propositions are the same thing, and proofs are programs. a type `T` is simultaneously a proposition; a term of type `T` is simultaneously a proof that `T` holds. this is the [[Curry-Howard correspondence]] scaled to full mathematics.
 
 four constructs cover all of mathematics:

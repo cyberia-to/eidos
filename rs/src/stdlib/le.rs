@@ -11,7 +11,6 @@
 use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
 use super::nat::{nat, nat_lit, nat_next};
-use super::prop::eq_refl;
 
 // ── Le constructors ───────────────────────────────────────────────────────────
 

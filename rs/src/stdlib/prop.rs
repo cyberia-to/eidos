@@ -1,7 +1,7 @@
 // stdlib/prop.rs — False, True, And, Or, Eq, Fin inductives and proof helpers
 use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
-use super::nat::{nat, nat_zero, nat_next};
+use super::nat::{nat, nat_next};
 
 // ── False ────────────────────────────────────────────────────────────────────
 
