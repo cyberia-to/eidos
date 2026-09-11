@@ -4,6 +4,8 @@
 
 pub mod ids;
 pub mod binary;
+pub mod binary_nat;
+pub mod reduction_certificate;
 pub mod nat;
 pub mod bool;
 pub mod list;
@@ -31,6 +33,7 @@ pub fn std_env() -> Env {
     let mut env = Env::new();
     nat::declare_nat(&mut env);
     binary::declare(&mut env);
+    binary_nat::declare(&mut env);
     bool::declare_bool(&mut env);
     list::declare_list(&mut env);
     prop::declare_false(&mut env);

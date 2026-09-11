@@ -36,6 +36,7 @@ impl ElabState {
     /// Populate globals with stdlib constructors and type names.
     pub fn add_stdlib(&mut self) {
         crate::stdlib::binary::add_globals(&mut self.globals);
+        crate::stdlib::binary_nat::add_globals(&mut self.globals);
         use crate::stdlib::*;
         let nat_arr = Term::Pi(Box::new(nat()), Box::new(nat()));
         let type1 = Term::Sort(1);

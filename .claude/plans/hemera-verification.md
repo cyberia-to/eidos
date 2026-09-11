@@ -36,3 +36,14 @@ strict prelude rechecking and full-width carry negative controls. All 161
 workspace tests pass. Hemera now checks 15 theorems and rejects 11 negative
 controls, including concrete Goldilocks modulus/exponent arithmetic; Rust/model
 bridges remain tests. No machine-word wrapping or field reduction proof yet.
+
+Follow-up 2026-09-11: BNat adds zero, multiplication and comparison as CIC terms.
+Concrete Euclidean-division certificates reconstruct the input and check range.
+Hemera checks 21 source theorems, rejects 13 negative controls and certifies two
+actual Rust products. Eidos tests total 165; dense 64-bit product reduction is
+still slow (~30 seconds debug, ~8 seconds release test suite). General resource
+bounds and shared reduction remain open. Separate Z3 QF_LIA verification of
+Hemera's manually translated reduce128 model is UNSAT; this is not an Eidos
+proof or an automatically verified Rust translation. The user explicitly
+requires actual hash-security resolution for production: the earlier choice
+of an alternative on uncertainty is not task completion; no profile is finalized.

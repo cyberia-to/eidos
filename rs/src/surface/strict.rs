@@ -1,4 +1,4 @@
-//! Closed-term checking in the Nat/Bool/Eq/Pos fragment, without admissions.
+//! Closed-term checking in the Nat/Bool/Eq/Pos/BNat fragment, without admissions.
 //! The frontend constructs terms; a fresh, fixed kernel environment rechecks
 //! each declaration before it can become a dependency of another declaration.
 
@@ -49,6 +49,13 @@ impl StrictChecker {
         // replace a bootstrap placeholder with a different meaning.
         let names = state.globals.keys().cloned().collect();
         const PRELUDE: &[&str] = &[
+            "BNat",
+            "BNat.zero",
+            "BNat.positive",
+            "BNat.succ",
+            "BNat.add",
+            "BNat.mul",
+            "BNat.lt",
             "Pos",
             "Pos.one",
             "Pos.bit0",
@@ -150,6 +157,7 @@ fn fragment_env() -> Env {
     let mut env = Env::new();
     stdlib::nat::declare_nat(&mut env);
     stdlib::binary::declare(&mut env);
+    stdlib::binary_nat::declare(&mut env);
     stdlib::bool::declare_bool(&mut env);
     stdlib::prop::declare_eq(&mut env);
     env
@@ -207,6 +215,7 @@ fn allowed_ind(id: u64) -> Result<(), String> {
         stdlib::BOOL_ID,
         stdlib::EQ_ID,
         stdlib::binary::POS_ID,
+        stdlib::binary_nat::BNAT_ID,
     ]
     .contains(&id)
     {

@@ -74,7 +74,7 @@ fn help_lines() -> String {
         ("repl", "interactive proof assistant"),
         ("eval <expr>", "reduce to normal form, show its type"),
         ("check <file.ei>", "elaborate + kernel-check all declarations"),
-        ("check --strict <file.ei>", "recheck Nat/Bool/Eq proofs and imports without admissions"),
+        ("check --strict <file.ei>", "recheck Nat/Bool/Eq/Pos/BNat proofs and imports without admissions"),
         ("search <type>", "query cybergraph for existing proofs"),
         ("verify <axon>", "fetch and verify a proof certificate"),
     ];
@@ -156,7 +156,7 @@ fn cmd_check(args: &[String]) {
                 println!("proved {}", decl.name);
             }
         }
-        println!("strict: {theorems} theorem(s), {} declaration(s), {} file(s); no admissions; Nat/Bool/Eq fragment",
+        println!("strict: {theorems} theorem(s), {} declaration(s), {} file(s); no admissions; Nat/Bool/Eq/Pos/BNat fragment",
             module.declarations.len(), module.files.len());
         return;
     }
