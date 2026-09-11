@@ -6,7 +6,7 @@ The result contains the checked declarations, elaborated terms, and dependency
 paths. A declaration is reported only after its closed body and type have been
 rechecked in a fresh fixed environment. Theorems must inhabit `Prop`.
 
-The supported inductives are Nat, Bool and Eq. The standard surface names in
+The supported inductives are Nat, Bool, Eq and binary Pos. The standard surface names in
 this fragment are individually kernel-checked during initialization. Unsupported
 bootstrap arithmetic is unavailable. Explicit theorem parameters may state laws;
 such a theorem remains conditional on those parameters.
@@ -18,10 +18,10 @@ depths above 64 fail; a shared dependency is checked once. A failed check return
 no module. `sorry` also fails in ordinary checking, rather than being counted as
 a proved theorem. Ordinary checking still supports explicit axioms.
 
-Trusted base: Rust kernel, reduction/substitution, the fixed Nat/Bool/Eq
+Trusted base: Rust kernel, reduction/substitution, the fixed Nat/Bool/Eq/Pos
 descriptors and Rust compilation/execution. This is neither an independent
 checker nor a kernel soundness proof. General inductive environment validation,
-bounded normalization, binary machine arithmetic and implementation refinement
+bounded normalization, modular machine arithmetic and implementation refinement
 are future obligations. The import-depth limit is not a general resource bound.
 
 ## Pi universes

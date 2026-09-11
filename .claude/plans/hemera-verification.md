@@ -30,3 +30,9 @@ experimental structural commitments and `.cyb` extraction adapter. Eidos's
 158 tests pass. Whole-repository strict clippy retains pre-existing diagnostics
 (13 after changes vs 16 in an isolated baseline export). Remaining dependency
 stages above are explicitly not completed.
+
+2026-09-11 slice: added canonical binary Pos with CIC successor/addition,
+strict prelude rechecking and full-width carry negative controls. All 161
+workspace tests pass. Hemera now checks 15 theorems and rejects 11 negative
+controls, including concrete Goldilocks modulus/exponent arithmetic; Rust/model
+bridges remain tests. No machine-word wrapping or field reduction proof yet.

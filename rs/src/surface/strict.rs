@@ -1,8 +1,8 @@
-//! Closed-term checking in the Nat/Bool/Eq fragment, without admissions.
+//! Closed-term checking in the Nat/Bool/Eq/Pos fragment, without admissions.
 //! The frontend constructs terms; a fresh, fixed kernel environment rechecks
 //! each declaration before it can become a dependency of another declaration.
 
-use super::{check_file, lex, parse_file, DeclKind, DeclResult, SurfaceDecl, Token};
+use super::{DeclKind, DeclResult, SurfaceDecl, Token, check_file, lex, parse_file};
 use crate::{elab::ElabState, env::Env, kernel, reduce::nf, stdlib, term::Term};
 use std::{
     collections::HashSet,
@@ -49,6 +49,12 @@ impl StrictChecker {
         // replace a bootstrap placeholder with a different meaning.
         let names = state.globals.keys().cloned().collect();
         const PRELUDE: &[&str] = &[
+            "Pos",
+            "Pos.one",
+            "Pos.bit0",
+            "Pos.bit1",
+            "Pos.succ",
+            "Pos.add",
             "Nat",
             "Bool",
             "Eq",
@@ -143,6 +149,7 @@ impl StrictChecker {
 fn fragment_env() -> Env {
     let mut env = Env::new();
     stdlib::nat::declare_nat(&mut env);
+    stdlib::binary::declare(&mut env);
     stdlib::bool::declare_bool(&mut env);
     stdlib::prop::declare_eq(&mut env);
     env
@@ -195,7 +202,14 @@ fn clean(t: &Term) -> Result<(), String> {
 }
 
 fn allowed_ind(id: u64) -> Result<(), String> {
-    if [stdlib::NAT_ID, stdlib::BOOL_ID, stdlib::EQ_ID].contains(&id) {
+    if [
+        stdlib::NAT_ID,
+        stdlib::BOOL_ID,
+        stdlib::EQ_ID,
+        stdlib::binary::POS_ID,
+    ]
+    .contains(&id)
+    {
         Ok(())
     } else {
         Err(format!("inductive outside strict fragment: {id}"))

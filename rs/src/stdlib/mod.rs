@@ -3,6 +3,7 @@
 // Untrusted shell — declares terms; kernel verifies them.
 
 pub mod ids;
+pub mod binary;
 pub mod nat;
 pub mod bool;
 pub mod list;
@@ -25,10 +26,11 @@ use crate::{env::Env, term::Term};
 
 // ── Env bootstrap ─────────────────────────────────────────────────────────────
 
-/// Build the standard environment: Nat, Bool, List, False, True, And, Or, Eq, Fin, Le.
+/// Build the standard environment: Pos, Nat, Bool, List, False, True, And, Or, Eq, Fin, Le.
 pub fn std_env() -> Env {
     let mut env = Env::new();
     nat::declare_nat(&mut env);
+    binary::declare(&mut env);
     bool::declare_bool(&mut env);
     list::declare_list(&mut env);
     prop::declare_false(&mut env);
