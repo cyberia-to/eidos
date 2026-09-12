@@ -5,7 +5,7 @@
 
 use crate::elab::ast::Expr;
 use crate::surface::lexer::Token;
-use crate::surface::parser::{Parser, parse_expr};
+use crate::surface::parser::{parse_expr, Parser};
 
 // ── Tactic AST ────────────────────────────────────────────────────────────────
 
@@ -29,17 +29,28 @@ pub enum Tactic {
     Simp(Vec<Expr>),
     Omega,
     Decide,
-    Have { name: String, ty: Expr, proof: Box<Proof> },
-    Rewrite { expr: Expr, reverse: bool },
+    Have {
+        name: String,
+        ty: Expr,
+        proof: Box<Proof>,
+    },
+    Rewrite {
+        expr: Expr,
+        reverse: bool,
+    },
     Contradiction,
     Trivial,
     Sorry,
     Show(Expr),
     Clear(String),
     Revert(String),
-    Case { ctor: String, vars: Vec<String>, body: Vec<Tactic> },
-    Focus(Vec<Tactic>),   // · tactic block
-    Seq(Vec<Tactic>),     // semicolon-separated sequence
+    Case {
+        ctor: String,
+        vars: Vec<String>,
+        body: Vec<Tactic>,
+    },
+    Focus(Vec<Tactic>), // · tactic block
+    Seq(Vec<Tactic>),   // semicolon-separated sequence
 }
 
 // ── Proof ─────────────────────────────────────────────────────────────────────
@@ -63,15 +74,21 @@ pub(crate) fn parse_proof(p: &mut Parser) -> Result<Proof, String> {
 pub(crate) fn parse_tactic_list(p: &mut Parser) -> Result<Vec<Tactic>, String> {
     let mut out = Vec::new();
     loop {
-        while matches!(p.peek(), Token::Semicolon) { p.advance(); }
-        if matches!(p.peek(), Token::RBrace | Token::Eof) { break; }
+        while matches!(p.peek(), Token::Semicolon) {
+            p.advance();
+        }
+        if matches!(p.peek(), Token::RBrace | Token::Eof) {
+            break;
+        }
         if matches!(p.peek(), Token::Bullet) {
             p.advance();
             out.push(Tactic::Focus(parse_focus_body(p)?));
             continue;
         }
         out.push(parse_one_tactic(p)?);
-        if matches!(p.peek(), Token::Semicolon) { p.advance(); }
+        if matches!(p.peek(), Token::Semicolon) {
+            p.advance();
+        }
     }
     Ok(out)
 }
@@ -80,10 +97,16 @@ pub(crate) fn parse_tactic_list(p: &mut Parser) -> Result<Vec<Tactic>, String> {
 fn parse_focus_body(p: &mut Parser) -> Result<Vec<Tactic>, String> {
     let mut out = Vec::new();
     loop {
-        while matches!(p.peek(), Token::Semicolon) { p.advance(); }
-        if matches!(p.peek(), Token::Bullet | Token::RBrace | Token::Eof) { break; }
+        while matches!(p.peek(), Token::Semicolon) {
+            p.advance();
+        }
+        if matches!(p.peek(), Token::Bullet | Token::RBrace | Token::Eof) {
+            break;
+        }
         out.push(parse_one_tactic(p)?);
-        if matches!(p.peek(), Token::Semicolon) { p.advance(); }
+        if matches!(p.peek(), Token::Semicolon) {
+            p.advance();
+        }
     }
     Ok(out)
 }
@@ -95,23 +118,67 @@ pub(crate) fn parse_one_tactic(p: &mut Parser) -> Result<Tactic, String> {
         Token::KwIntro => {
             p.advance();
             let mut names = vec![p.eat_ident()?];
-            while let Token::Ident(_) = p.peek() { names.push(p.eat_ident()?); }
+            while let Token::Ident(_) = p.peek() {
+                names.push(p.eat_ident()?);
+            }
             Ok(Tactic::Intro(names))
         }
-        Token::KwExact      => { p.advance(); Ok(Tactic::Exact(parse_expr(p)?)) }
-        Token::KwApply      => { p.advance(); Ok(Tactic::Apply(parse_expr(p)?)) }
-        Token::KwInduction  => { p.advance(); Ok(Tactic::Induction(p.eat_ident()?)) }
-        Token::KwCases      => { p.advance(); Ok(Tactic::Cases(p.eat_ident()?)) }
-        Token::KwRfl        => { p.advance(); Ok(Tactic::Rfl) }
-        Token::KwAssumption => { p.advance(); Ok(Tactic::Assumption) }
-        Token::KwOmega      => { p.advance(); Ok(Tactic::Omega) }
-        Token::KwDecide     => { p.advance(); Ok(Tactic::Decide) }
-        Token::KwContradiction => { p.advance(); Ok(Tactic::Contradiction) }
-        Token::KwTrivial    => { p.advance(); Ok(Tactic::Trivial) }
-        Token::KwSorry      => { p.advance(); Ok(Tactic::Sorry) }
-        Token::KwShow       => { p.advance(); Ok(Tactic::Show(parse_expr(p)?)) }
-        Token::KwClear      => { p.advance(); Ok(Tactic::Clear(p.eat_ident()?)) }
-        Token::KwRevert     => { p.advance(); Ok(Tactic::Revert(p.eat_ident()?)) }
+        Token::KwExact => {
+            p.advance();
+            Ok(Tactic::Exact(parse_expr(p)?))
+        }
+        Token::KwApply => {
+            p.advance();
+            Ok(Tactic::Apply(parse_expr(p)?))
+        }
+        Token::KwInduction => {
+            p.advance();
+            Ok(Tactic::Induction(p.eat_ident()?))
+        }
+        Token::KwCases => {
+            p.advance();
+            Ok(Tactic::Cases(p.eat_ident()?))
+        }
+        Token::KwRfl => {
+            p.advance();
+            Ok(Tactic::Rfl)
+        }
+        Token::KwAssumption => {
+            p.advance();
+            Ok(Tactic::Assumption)
+        }
+        Token::KwOmega => {
+            p.advance();
+            Ok(Tactic::Omega)
+        }
+        Token::KwDecide => {
+            p.advance();
+            Ok(Tactic::Decide)
+        }
+        Token::KwContradiction => {
+            p.advance();
+            Ok(Tactic::Contradiction)
+        }
+        Token::KwTrivial => {
+            p.advance();
+            Ok(Tactic::Trivial)
+        }
+        Token::KwSorry => {
+            p.advance();
+            Ok(Tactic::Sorry)
+        }
+        Token::KwShow => {
+            p.advance();
+            Ok(Tactic::Show(parse_expr(p)?))
+        }
+        Token::KwClear => {
+            p.advance();
+            Ok(Tactic::Clear(p.eat_ident()?))
+        }
+        Token::KwRevert => {
+            p.advance();
+            Ok(Tactic::Revert(p.eat_ident()?))
+        }
 
         Token::KwSimp => {
             p.advance();
@@ -136,15 +203,22 @@ pub(crate) fn parse_one_tactic(p: &mut Parser) -> Result<Tactic, String> {
             p.eat(&Token::Colon)?;
             let ty = parse_expr(p)?;
             p.eat(&Token::ColonEq)?;
-            Ok(Tactic::Have { name, ty, proof: Box::new(parse_proof(p)?) })
+            Ok(Tactic::Have {
+                name,
+                ty,
+                proof: Box::new(parse_proof(p)?),
+            })
         }
 
         Token::KwRewrite => {
             p.advance();
             p.eat(&Token::LBracket)?;
             let reverse = if matches!(p.peek(), Token::BackArrow) {
-                p.advance(); true
-            } else { false };
+                p.advance();
+                true
+            } else {
+                false
+            };
             let expr = parse_expr(p)?;
             p.eat(&Token::RBracket)?;
             Ok(Tactic::Rewrite { expr, reverse })
@@ -154,16 +228,25 @@ pub(crate) fn parse_one_tactic(p: &mut Parser) -> Result<Tactic, String> {
             p.advance();
             let ctor = p.eat_ident()?;
             let mut vars = Vec::new();
-            while let Token::Ident(_) = p.peek() { vars.push(p.eat_ident()?); }
+            while let Token::Ident(_) = p.peek() {
+                vars.push(p.eat_ident()?);
+            }
             p.eat(&Token::FatArrow)?;
             let mut body = Vec::new();
             loop {
-                while matches!(p.peek(), Token::Semicolon) { p.advance(); }
-                if matches!(p.peek(),
+                while matches!(p.peek(), Token::Semicolon) {
+                    p.advance();
+                }
+                if matches!(
+                    p.peek(),
                     Token::KwCase | Token::Bullet | Token::RBrace | Token::Eof
-                ) { break; }
+                ) {
+                    break;
+                }
                 body.push(parse_one_tactic(p)?);
-                if matches!(p.peek(), Token::Semicolon) { p.advance(); }
+                if matches!(p.peek(), Token::Semicolon) {
+                    p.advance();
+                }
             }
             Ok(Tactic::Case { ctor, vars, body })
         }

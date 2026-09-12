@@ -12,7 +12,11 @@ pub fn shift(t: &Term, n: u64) -> Term {
 fn shift_at(t: &Term, n: u64, depth: u64) -> Term {
     match t {
         Term::Var(i) => {
-            if *i >= depth { Term::Var(i + n) } else { Term::Var(*i) }
+            if *i >= depth {
+                Term::Var(i + n)
+            } else {
+                Term::Var(*i)
+            }
         }
         Term::Sort(u) => Term::Sort(*u),
         Term::Pi(a, b) => Term::Pi(
@@ -35,9 +39,11 @@ fn shift_at(t: &Term, n: u64, depth: u64) -> Term {
         Term::Ind(id, params) => {
             Term::Ind(*id, params.iter().map(|p| shift_at(p, n, depth)).collect())
         }
-        Term::Ctor(id, k, args) => {
-            Term::Ctor(*id, *k, args.iter().map(|a| shift_at(a, n, depth)).collect())
-        }
+        Term::Ctor(id, k, args) => Term::Ctor(
+            *id,
+            *k,
+            args.iter().map(|a| shift_at(a, n, depth)).collect(),
+        ),
         Term::Elim(id, motive, cases, target) => Term::Elim(
             *id,
             Box::new(shift_at(motive, n, depth)),
@@ -50,7 +56,7 @@ fn shift_at(t: &Term, n: u64, depth: u64) -> Term {
             Box::new(shift_at(pf, n, depth)),
         ),
         Term::Const(id) => Term::Const(*id), // constants have no free variables
-        Term::Meta(id) => Term::Meta(*id), // metas don't shift
+        Term::Meta(id) => Term::Meta(*id),   // metas don't shift
     }
 }
 
@@ -62,9 +68,9 @@ pub fn subst(t: &Term, s: &Term) -> Term {
 fn subst_at(t: &Term, s: &Term, depth: u64) -> Term {
     match t {
         Term::Var(i) => match i.cmp(&depth) {
-            std::cmp::Ordering::Equal   => shift(s, depth),
+            std::cmp::Ordering::Equal => shift(s, depth),
             std::cmp::Ordering::Greater => Term::Var(i - 1),
-            std::cmp::Ordering::Less    => Term::Var(*i),
+            std::cmp::Ordering::Less => Term::Var(*i),
         },
         Term::Sort(u) => Term::Sort(*u),
         Term::Pi(a, b) => Term::Pi(
@@ -87,9 +93,11 @@ fn subst_at(t: &Term, s: &Term, depth: u64) -> Term {
         Term::Ind(id, params) => {
             Term::Ind(*id, params.iter().map(|p| subst_at(p, s, depth)).collect())
         }
-        Term::Ctor(id, k, args) => {
-            Term::Ctor(*id, *k, args.iter().map(|a| subst_at(a, s, depth)).collect())
-        }
+        Term::Ctor(id, k, args) => Term::Ctor(
+            *id,
+            *k,
+            args.iter().map(|a| subst_at(a, s, depth)).collect(),
+        ),
         Term::Elim(id, motive, cases, target) => Term::Elim(
             *id,
             Box::new(subst_at(motive, s, depth)),
@@ -102,6 +110,6 @@ fn subst_at(t: &Term, s: &Term, depth: u64) -> Term {
             Box::new(subst_at(pf, s, depth)),
         ),
         Term::Const(id) => Term::Const(*id), // constants have no free variables
-        Term::Meta(id) => Term::Meta(*id), // metas not substituted by regular subst
+        Term::Meta(id) => Term::Meta(*id),   // metas not substituted by regular subst
     }
 }

@@ -4,7 +4,7 @@
 use std::io::{self, BufRead, Write};
 
 use cyber_eidos::{
-    elab::{ElabState, elab_expr},
+    elab::{elab_expr, ElabState},
     env::Env,
     reduce::nf,
     stdlib::std_env,
@@ -21,14 +21,17 @@ use crate::pretty;
 
 pub fn run() {
     let mut env = std_env();
-    let mut st  = ElabState::new();
+    let mut st = ElabState::new();
     st.add_stdlib();
 
-    let stdin  = io::stdin();
+    let stdin = io::stdin();
     let stdout = io::stdout();
 
     print!("{}", crate::banner());
-    println!("  {}", crate::dim("interactive · :help for commands · :quit to exit"));
+    println!(
+        "  {}",
+        crate::dim("interactive · :help for commands · :quit to exit")
+    );
 
     let prompt = format!("{}{} ", crate::cyan("eidos"), crate::dim("›"));
     let mut buf = String::new();
@@ -42,12 +45,14 @@ pub fn run() {
 
         buf.clear();
         match stdin.lock().read_line(&mut buf) {
-            Ok(0) | Err(_) => break,  // EOF
+            Ok(0) | Err(_) => break, // EOF
             Ok(_) => {}
         }
 
         let line = buf.trim();
-        if line.is_empty() || line.starts_with("--") { continue; }
+        if line.is_empty() || line.starts_with("--") {
+            continue;
+        }
 
         if line.starts_with(':') {
             handle_command(line, &env, &mut st);
@@ -63,7 +68,8 @@ pub fn run() {
 // ── Command dispatch ──────────────────────────────────────────────────────────
 
 fn handle_command(line: &str, env: &Env, st: &mut ElabState) {
-    let (cmd, rest) = line[1..].split_once(char::is_whitespace)
+    let (cmd, rest) = line[1..]
+        .split_once(char::is_whitespace)
         .unwrap_or((&line[1..], ""));
     let rest = rest.trim();
 
@@ -74,9 +80,9 @@ fn handle_command(line: &str, env: &Env, st: &mut ElabState) {
         }
         "help" | "h" => print_help(),
         "check" | "c" => cmd_check_expr(rest, env, st),
-        "eval"  | "e" => cmd_eval_expr(rest, env, st),
-        "env"         => cmd_show_env(env, st),
-        "reset"       => {
+        "eval" | "e" => cmd_eval_expr(rest, env, st),
+        "env" => cmd_show_env(env, st),
+        "reset" => {
             println!("(environment reset)");
             // Can't reassign env/st here without &mut — user can restart
             println!("hint: restart eidos to reset the environment");
@@ -124,7 +130,7 @@ fn cmd_eval_expr(src: &str, env: &Env, st: &mut ElabState) {
         Ok((term, ty)) => {
             let ctx = vec![];
             let nf_term = nf(env, &ctx, term);
-            let nf_ty   = nf(env, &ctx, ty);
+            let nf_ty = nf(env, &ctx, ty);
             println!(
                 "  {} {} {}",
                 crate::green(&pretty::pp(&nf_term)),
@@ -144,7 +150,12 @@ fn cmd_show_env(_env: &Env, st: &ElabState) {
         names.sort_unstable();
         for name in names {
             if let Some((_, ty)) = st.globals.get(name) {
-                println!("  {} {} {}", crate::bold(name), crate::dim(":"), crate::dim(&pretty::pp(ty)));
+                println!(
+                    "  {} {} {}",
+                    crate::bold(name),
+                    crate::dim(":"),
+                    crate::dim(&pretty::pp(ty))
+                );
             }
         }
     }
@@ -155,12 +166,18 @@ fn cmd_show_env(_env: &Env, st: &ElabState) {
 fn process_input(src: &str, env: &mut Env, st: &mut ElabState) {
     // Lex and parse
     let tokens = match lex(src) {
-        Ok(t)  => t,
-        Err(e) => { eprintln!("lex error: {e}"); return; }
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("lex error: {e}");
+            return;
+        }
     };
     let decls = match parse_file(&tokens) {
-        Ok(d)  => d,
-        Err(e) => { eprintln!("parse error: {e}"); return; }
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("parse error: {e}");
+            return;
+        }
     };
 
     if decls.is_empty() {
@@ -175,9 +192,27 @@ fn process_input(src: &str, env: &mut Env, st: &mut ElabState) {
                 let ty = crate::dim(&pretty::pp(&r.ty));
                 let nm = crate::bold(&r.name);
                 match r.kind {
-                    DeclKind::Def       => println!("  {} {} {} {}", crate::dim("def      "), nm, crate::dim(":"), ty),
-                    DeclKind::Theorem   => println!("  {} {} {} {}", crate::green("proved   "), nm, crate::dim(":"), ty),
-                    DeclKind::Axiom     => println!("  {} {} {} {}", crate::yellow("axiom    "), nm, crate::dim(":"), ty),
+                    DeclKind::Def => println!(
+                        "  {} {} {} {}",
+                        crate::dim("def      "),
+                        nm,
+                        crate::dim(":"),
+                        ty
+                    ),
+                    DeclKind::Theorem => println!(
+                        "  {} {} {} {}",
+                        crate::green("proved   "),
+                        nm,
+                        crate::dim(":"),
+                        ty
+                    ),
+                    DeclKind::Axiom => println!(
+                        "  {} {} {} {}",
+                        crate::yellow("axiom    "),
+                        nm,
+                        crate::dim(":"),
+                        ty
+                    ),
                     DeclKind::Inductive => println!("  {} {}", crate::magenta("inductive"), nm),
                 }
             }
@@ -197,8 +232,7 @@ fn elaborate_expr(
     let tokens = lex(src).map_err(|e| format!("lex: {e}"))?;
     use cyber_eidos::surface::parser::parse_expr_tokens;
     let expr = parse_expr_tokens(&tokens).map_err(|e| format!("parse: {e}"))?;
-    let (term, ty) = elab_expr(st, env, &expr)
-        .map_err(|e| format!("elab: {e:?}"))?;
+    let (term, ty) = elab_expr(st, env, &expr).map_err(|e| format!("elab: {e:?}"))?;
     let ctx = vec![];
     let ty_nf = nf(env, &ctx, st.mctx.zonk(&ty));
     Ok((term, ty_nf))

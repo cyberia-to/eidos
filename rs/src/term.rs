@@ -54,13 +54,21 @@ pub enum Term {
 }
 
 impl Term {
-    pub fn prop()  -> Self { Term::Sort(0) }
-    pub fn type0() -> Self { Term::Sort(1) }
+    pub fn prop() -> Self {
+        Term::Sort(0)
+    }
+    pub fn type0() -> Self {
+        Term::Sort(1)
+    }
 
     /// prop_max: universe level arithmetic respecting PROP impredicativity.
     /// Only a proposition-valued codomain makes the product a proposition.
     pub fn prop_max(u: Level, v: Level) -> Level {
-        if v == 0 { 0 } else { u.max(v) }
+        if v == 0 {
+            0
+        } else {
+            u.max(v)
+        }
     }
 
     /// True if the term contains no Meta nodes (safe for kernel).
@@ -68,18 +76,18 @@ impl Term {
         match self {
             Term::Meta(_) => false,
             Term::Var(_) | Term::Sort(_) | Term::Const(_) => true,
-            Term::Pi(a, b) | Term::Lam(a, b) | Term::App(a, b) =>
-                a.is_kernel_term() && b.is_kernel_term(),
-            Term::Let(a, v, b) =>
-                a.is_kernel_term() && v.is_kernel_term() && b.is_kernel_term(),
+            Term::Pi(a, b) | Term::Lam(a, b) | Term::App(a, b) => {
+                a.is_kernel_term() && b.is_kernel_term()
+            }
+            Term::Let(a, v, b) => a.is_kernel_term() && v.is_kernel_term() && b.is_kernel_term(),
             Term::Ind(_, ps) => ps.iter().all(|p| p.is_kernel_term()),
             Term::Ctor(_, _, args) => args.iter().all(|a| a.is_kernel_term()),
-            Term::Elim(_, m, cs, tg) =>
-                m.is_kernel_term()
-                && cs.iter().all(|c| c.is_kernel_term())
-                && tg.is_kernel_term(),
-            Term::EqSubst(p, h, pf) =>
-                p.is_kernel_term() && h.is_kernel_term() && pf.is_kernel_term(),
+            Term::Elim(_, m, cs, tg) => {
+                m.is_kernel_term() && cs.iter().all(|c| c.is_kernel_term()) && tg.is_kernel_term()
+            }
+            Term::EqSubst(p, h, pf) => {
+                p.is_kernel_term() && h.is_kernel_term() && pf.is_kernel_term()
+            }
         }
     }
 }

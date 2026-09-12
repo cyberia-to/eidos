@@ -1,20 +1,32 @@
 // decl — declaration elaboration: def/theorem/axiom/inductive
 // spec: specs/surface.md § declaration elaboration
 
-use crate::{env::{ConstDecl, Env, IndDesc}, kernel, term::Term};
 use super::{
     ast::Decl,
     core::{elab_expr, fold_lam, fold_pi, push_params, ElabState},
     meta::ElabError,
 };
+use crate::{
+    env::{ConstDecl, Env, IndDesc},
+    kernel,
+    term::Term,
+};
 
 /// Elaborate a top-level declaration, extending `st.globals` and/or `env`.
 pub fn elab_decl(st: &mut ElabState, env: &mut Env, decl: &Decl) -> Result<(), ElabError> {
     match decl {
-        Decl::Def { name, params, ty, body }
-        | Decl::Theorem { name, params, ty, body } => {
-            elab_def(st, env, name, params, ty, body)
+        Decl::Def {
+            name,
+            params,
+            ty,
+            body,
         }
+        | Decl::Theorem {
+            name,
+            params,
+            ty,
+            body,
+        } => elab_def(st, env, name, params, ty, body),
 
         Decl::Axiom { name, ty } => {
             let (ty_term, _) = elab_expr(st, env, ty)?;
@@ -23,14 +35,24 @@ pub fn elab_decl(st: &mut ElabState, env: &mut Env, decl: &Decl) -> Result<(), E
                 return Err(ElabError::UnsolvedMeta(0));
             }
             let id = fnv_hash(name.as_bytes());
-            env.insert_const(id, ConstDecl { ty: ty_closed.clone(), body: None });
-            st.globals.insert(name.clone(), (Term::Const(id), ty_closed));
+            env.insert_const(
+                id,
+                ConstDecl {
+                    ty: ty_closed.clone(),
+                    body: None,
+                },
+            );
+            st.globals
+                .insert(name.clone(), (Term::Const(id), ty_closed));
             Ok(())
         }
 
-        Decl::Inductive { name, params, sort, ctors } => {
-            elab_inductive(st, env, name, params, sort, ctors)
-        }
+        Decl::Inductive {
+            name,
+            params,
+            sort,
+            ctors,
+        } => elab_inductive(st, env, name, params, sort, ctors),
     }
 }
 
@@ -46,23 +68,30 @@ fn elab_def(
     let param_types = push_params(st, env, params)?;
     let n_params = st.locals.len() - n_before;
 
-    let (ty_term, _)   = elab_expr(st, env, ty_expr)?;
+    let (ty_term, _) = elab_expr(st, env, ty_expr)?;
     let (body_term, _) = elab_expr(st, env, body_expr)?;
 
     // Kernel check
     let ctx = st.ctx();
-    let ty_z   = st.mctx.zonk(&ty_term);
+    let ty_z = st.mctx.zonk(&ty_term);
     let body_z = st.mctx.zonk(&body_term);
-    if !ty_z.is_kernel_term()   { return Err(ElabError::UnsolvedMeta(0)); }
-    if !body_z.is_kernel_term() { return Err(ElabError::UnsolvedMeta(0)); }
+    if !ty_z.is_kernel_term() {
+        return Err(ElabError::UnsolvedMeta(0));
+    }
+    if !body_z.is_kernel_term() {
+        return Err(ElabError::UnsolvedMeta(0));
+    }
     kernel::check(env, &ctx, &body_z, &ty_z)?;
 
     // Pop param locals and fold into LAM / PI
-    for _ in 0..n_params { st.pop(); }
+    for _ in 0..n_params {
+        st.pop();
+    }
     let closed_body = fold_lam(&param_types, body_z);
-    let closed_ty   = fold_pi (&param_types, ty_z);
+    let closed_ty = fold_pi(&param_types, ty_z);
 
-    st.globals.insert(name.to_string(), (closed_body, closed_ty));
+    st.globals
+        .insert(name.to_string(), (closed_body, closed_ty));
     Ok(())
 }
 
@@ -115,7 +144,9 @@ fn elab_inductive(
     for (ctor_name, ctor_ty_expr) in ctors {
         let (ctor_term, _) = elab_expr(st, &env2, ctor_ty_expr)?;
         let ctor_z = st.mctx.zonk(&ctor_term);
-        if !ctor_z.is_kernel_term() { return Err(ElabError::UnsolvedMeta(0)); }
+        if !ctor_z.is_kernel_term() {
+            return Err(ElabError::UnsolvedMeta(0));
+        }
         // Positivity: ind_id must not appear in negative position
         check_positivity(ind_id, &ctor_z, ctor_name)?;
         ctor_tels.push(ctor_z.clone());
@@ -128,11 +159,14 @@ fn elab_inductive(
         } else {
             (Term::Ctor(ind_id, ctor_idx, vec![]), Term::Sort(0))
         };
-        st.globals.insert(format!("{}.{}", name, ctor_name), (ctor_val, ctor_ty));
+        st.globals
+            .insert(format!("{}.{}", name, ctor_name), (ctor_val, ctor_ty));
     }
 
     // Pop param locals
-    for _ in 0..n_params { st.pop(); }
+    for _ in 0..n_params {
+        st.pop();
+    }
 
     let desc = IndDesc {
         arity: n_params as u64,
@@ -150,11 +184,9 @@ fn elab_inductive(
 fn build_ctor_fn(id: u64, k: u64, ctor_tel: &Term) -> (Term, Term) {
     let mut field_tys: Vec<Term> = Vec::new();
     let mut t = ctor_tel;
-    loop {
-        match t {
-            Term::Pi(a, b) => { field_tys.push(*a.clone()); t = b; }
-            _ => break,
-        }
+    while let Term::Pi(a, b) = t {
+        field_tys.push(*a.clone());
+        t = b;
     }
     let n = field_tys.len();
     // Ctor args are innermost-first de Bruijn: field 0 = Var(n-1), ..., field n-1 = Var(0)
@@ -196,15 +228,17 @@ fn contains_ind(id: u64, t: &Term) -> bool {
     match t {
         Term::Ind(i, ps) => *i == id || ps.iter().any(|p| contains_ind(id, p)),
         Term::Var(_) | Term::Sort(_) | Term::Meta(_) => false,
-        Term::Pi(a, b) | Term::Lam(a, b) | Term::App(a, b) =>
-            contains_ind(id, a) || contains_ind(id, b),
-        Term::Let(a, v, b) =>
-            contains_ind(id, a) || contains_ind(id, v) || contains_ind(id, b),
+        Term::Pi(a, b) | Term::Lam(a, b) | Term::App(a, b) => {
+            contains_ind(id, a) || contains_ind(id, b)
+        }
+        Term::Let(a, v, b) => contains_ind(id, a) || contains_ind(id, v) || contains_ind(id, b),
         Term::Ctor(_, _, args) => args.iter().any(|a| contains_ind(id, a)),
-        Term::Elim(_, m, cs, tg) =>
-            contains_ind(id, m) || cs.iter().any(|c| contains_ind(id, c)) || contains_ind(id, tg),
-        Term::EqSubst(p, h, pf) =>
-            contains_ind(id, p) || contains_ind(id, h) || contains_ind(id, pf),
+        Term::Elim(_, m, cs, tg) => {
+            contains_ind(id, m) || cs.iter().any(|c| contains_ind(id, c)) || contains_ind(id, tg)
+        }
+        Term::EqSubst(p, h, pf) => {
+            contains_ind(id, p) || contains_ind(id, h) || contains_ind(id, pf)
+        }
         Term::Const(_) => false,
     }
 }

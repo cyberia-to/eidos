@@ -2,7 +2,7 @@
 //! The frontend constructs terms; a fresh, fixed kernel environment rechecks
 //! each declaration before it can become a dependency of another declaration.
 
-use super::{DeclKind, DeclResult, SurfaceDecl, Token, check_file, lex, parse_file};
+use super::{check_file, lex, parse_file, DeclKind, DeclResult, SurfaceDecl, Token};
 use crate::{elab::ElabState, env::Env, kernel, reduce::nf, stdlib, term::Term};
 use std::{
     collections::HashSet,

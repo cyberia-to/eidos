@@ -12,7 +12,7 @@ use crate::{
 
 /// instantiate(ctor_tel, params): simultaneous substitution of parameters into a constructor
 /// return type. ctor_tel has free variables VAR(n-1)…VAR(0) for n params.
-/// params is ordered outermost-first: params[0] replaces VAR(n-1), params[n-1] replaces VAR(0).
+/// `params` is ordered outermost-first: `params[0]` replaces VAR(n-1), `params[n-1]` replaces VAR(0).
 /// Uses simultaneous (not sequential) substitution to avoid corruption of free variables in params.
 pub fn instantiate(ctor_tel: &Term, params: &[Term]) -> Term {
     inst_at(ctor_tel, params, 0)
@@ -53,7 +53,11 @@ fn inst_at(t: &Term, params: &[Term], depth: u64) -> Term {
             Box::new(inst_at(b, params, depth + 1)),
         ),
         Term::Ind(id, ps) => Term::Ind(*id, ps.iter().map(|p| inst_at(p, params, depth)).collect()),
-        Term::Ctor(id, k, args) => Term::Ctor(*id, *k, args.iter().map(|a| inst_at(a, params, depth)).collect()),
+        Term::Ctor(id, k, args) => Term::Ctor(
+            *id,
+            *k,
+            args.iter().map(|a| inst_at(a, params, depth)).collect(),
+        ),
         Term::Elim(id, motive, cases, target) => Term::Elim(
             *id,
             Box::new(inst_at(motive, params, depth)),
@@ -153,7 +157,8 @@ pub fn whnf(env: &Env, ctx: &Ctx, t: Term) -> Term {
                     // Substitute placeholder params (VAR(arity-1)…VAR(0)) so recursive
                     // positions appear as IND(id, _) after substitution.
                     let arity = desc.arity as usize;
-                    let placeholders: Vec<Term> = (0..arity).rev().map(|i| Term::Var(i as u64)).collect();
+                    let placeholders: Vec<Term> =
+                        (0..arity).rev().map(|i| Term::Var(i as u64)).collect();
                     let inst_tel = instantiate(&ctor_tel, &placeholders);
                     let rargs = recargs(env, ctx, id, &motive, &cases, inst_tel, &args);
                     let case_fn = cases[k as usize].clone();
@@ -169,14 +174,10 @@ pub fn whnf(env: &Env, ctx: &Ctx, t: Term) -> Term {
         }
 
         // ι: EqSubst(p, CTOR(EQ_ID, 0, _), pf_a) → pf_a
-        Term::EqSubst(p, h, pf_a) => {
-            match whnf(env, ctx, *h) {
-                Term::Ctor(id, 0, _) if id == crate::stdlib::EQ_ID => {
-                    whnf(env, ctx, *pf_a)
-                }
-                h_whnf => Term::EqSubst(p, Box::new(h_whnf), pf_a),
-            }
-        }
+        Term::EqSubst(p, h, pf_a) => match whnf(env, ctx, *h) {
+            Term::Ctor(id, 0, _) if id == crate::stdlib::EQ_ID => whnf(env, ctx, *pf_a),
+            h_whnf => Term::EqSubst(p, Box::new(h_whnf), pf_a),
+        },
 
         // CONST: unfold transparent defs; leave axioms opaque
         Term::Const(id) => {
@@ -218,8 +219,12 @@ pub fn nf(env: &Env, ctx: &Ctx, t: Term) -> Term {
             Box::new(nf(env, ctx, *v)),
             Box::new(nf(env, ctx, *b)),
         ),
-        Term::Ind(id, params) => Term::Ind(id, params.into_iter().map(|p| nf(env, ctx, p)).collect()),
-        Term::Ctor(id, k, args) => Term::Ctor(id, k, args.into_iter().map(|a| nf(env, ctx, a)).collect()),
+        Term::Ind(id, params) => {
+            Term::Ind(id, params.into_iter().map(|p| nf(env, ctx, p)).collect())
+        }
+        Term::Ctor(id, k, args) => {
+            Term::Ctor(id, k, args.into_iter().map(|a| nf(env, ctx, a)).collect())
+        }
         Term::Elim(id, m, cs, tg) => Term::Elim(
             id,
             Box::new(nf(env, ctx, *m)),
@@ -250,42 +255,50 @@ fn structural_eq(env: &Env, ctx: &Ctx, t: &Term, s: &Term) -> bool {
 
         (Term::Var(i), Term::Var(j)) => i == j,
 
-        (Term::App(f, a), Term::App(g, b)) =>
-            def_eq(env, ctx, f, g) && def_eq(env, ctx, a, b),
+        (Term::App(f, a), Term::App(g, b)) => def_eq(env, ctx, f, g) && def_eq(env, ctx, a, b),
 
         (Term::Pi(a, b), Term::Pi(c, d)) => {
-            if !def_eq(env, ctx, a, c) { return false; }
+            if !def_eq(env, ctx, a, c) {
+                return false;
+            }
             let mut ctx2 = ctx.clone();
             push_var(&mut ctx2, *a.clone());
             def_eq(env, &ctx2, b, d)
         }
 
         (Term::Lam(a, tb), Term::Lam(b, sb)) => {
-            if !def_eq(env, ctx, a, b) { return false; }
+            if !def_eq(env, ctx, a, b) {
+                return false;
+            }
             let mut ctx2 = ctx.clone();
             push_var(&mut ctx2, *a.clone());
             def_eq(env, &ctx2, tb, sb)
         }
 
-        (Term::Ind(id1, ps), Term::Ind(id2, qs)) =>
-            id1 == id2 && ps.len() == qs.len()
-            && ps.iter().zip(qs).all(|(p, q)| def_eq(env, ctx, p, q)),
-
-        (Term::Ctor(id1, k1, as_), Term::Ctor(id2, k2, bs)) =>
-            id1 == id2 && k1 == k2 && as_.len() == bs.len()
-            && as_.iter().zip(bs).all(|(a, b)| def_eq(env, ctx, a, b)),
-
-        (Term::Elim(id1, m1, cs1, tg1), Term::Elim(id2, m2, cs2, tg2)) =>
+        (Term::Ind(id1, ps), Term::Ind(id2, qs)) => {
             id1 == id2
-            && def_eq(env, ctx, m1, m2)
-            && cs1.len() == cs2.len()
-            && cs1.iter().zip(cs2).all(|(c1, c2)| def_eq(env, ctx, c1, c2))
-            && def_eq(env, ctx, tg1, tg2),
+                && ps.len() == qs.len()
+                && ps.iter().zip(qs).all(|(p, q)| def_eq(env, ctx, p, q))
+        }
 
-        (Term::EqSubst(p1, h1, pf1), Term::EqSubst(p2, h2, pf2)) =>
-            def_eq(env, ctx, p1, p2)
-            && def_eq(env, ctx, h1, h2)
-            && def_eq(env, ctx, pf1, pf2),
+        (Term::Ctor(id1, k1, as_), Term::Ctor(id2, k2, bs)) => {
+            id1 == id2
+                && k1 == k2
+                && as_.len() == bs.len()
+                && as_.iter().zip(bs).all(|(a, b)| def_eq(env, ctx, a, b))
+        }
+
+        (Term::Elim(id1, m1, cs1, tg1), Term::Elim(id2, m2, cs2, tg2)) => {
+            id1 == id2
+                && def_eq(env, ctx, m1, m2)
+                && cs1.len() == cs2.len()
+                && cs1.iter().zip(cs2).all(|(c1, c2)| def_eq(env, ctx, c1, c2))
+                && def_eq(env, ctx, tg1, tg2)
+        }
+
+        (Term::EqSubst(p1, h1, pf1), Term::EqSubst(p2, h2, pf2)) => {
+            def_eq(env, ctx, p1, p2) && def_eq(env, ctx, h1, h2) && def_eq(env, ctx, pf1, pf2)
+        }
 
         (Term::Const(id1), Term::Const(id2)) => id1 == id2,
 
@@ -312,8 +325,12 @@ mod tests {
     use super::*;
     use crate::term::Term;
 
-    fn env() -> Env { Env::new() }
-    fn ctx() -> Ctx { vec![] }
+    fn env() -> Env {
+        Env::new()
+    }
+    fn ctx() -> Ctx {
+        vec![]
+    }
 
     #[test]
     fn whnf_sort() {

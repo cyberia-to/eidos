@@ -1,10 +1,10 @@
 // tactic_ext/elim.rs — tac_induction, tac_cases
+use crate::tactic::{ProofState, TacticError};
 use crate::{
     kernel::{case_type, infer},
     reduce::whnf,
     term::Term,
 };
-use crate::tactic::{ProofState, TacticError};
 
 /// induction x — apply the eliminator for x's inductive type (with IH).
 pub fn tac_induction(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticError> {
@@ -28,11 +28,15 @@ fn elim_tactic(state: &mut ProofState, hyp_idx: usize, with_ih: bool) -> Result<
     let tgt_ty = infer(env, &ctx, &tgt).map_err(TacticError::Kernel)?;
     let (ind_id, params) = match whnf(env, &ctx, tgt_ty) {
         Term::Ind(id, ps) => (id, ps),
-        other => return Err(TacticError::TacticFailed(
-            format!("induction/cases: expected inductive type, got {:?}", other)
-        )),
+        other => {
+            return Err(TacticError::TacticFailed(format!(
+                "induction/cases: expected inductive type, got {:?}",
+                other
+            )))
+        }
     };
-    let desc = env.lookup(ind_id)
+    let desc = env
+        .lookup(ind_id)
         .ok_or_else(|| TacticError::TacticFailed("unknown inductive".into()))?
         .clone();
 
@@ -44,7 +48,9 @@ fn elim_tactic(state: &mut ProofState, hyp_idx: usize, with_ih: bool) -> Result<
     let n_ctors = desc.constructors.len();
     let mut case_metas: Vec<u64> = Vec::with_capacity(n_ctors);
     let base_next = state.metas.next;
-    for i in 0..n_ctors { case_metas.push(base_next + i as u64); }
+    for i in 0..n_ctors {
+        case_metas.push(base_next + i as u64);
+    }
     state.metas.next += n_ctors as u64;
 
     let cases_terms: Vec<Term> = case_metas.iter().map(|&m| Term::Meta(m)).collect();
@@ -55,7 +61,11 @@ fn elim_tactic(state: &mut ProofState, hyp_idx: usize, with_ih: bool) -> Result<
     let mut new_goals = Vec::new();
     for (k, ctor_tel) in desc.constructors.iter().enumerate() {
         let expected_case = case_type(env, &ctx, ctor_tel, k, ind_id, &motive, &params);
-        let case_ty = if with_ih { expected_case } else { strip_ih_binders(expected_case, ind_id) };
+        let case_ty = if with_ih {
+            expected_case
+        } else {
+            strip_ih_binders(expected_case, ind_id)
+        };
         new_goals.push(crate::tactic::Goal {
             local_ctx: ctx.clone(),
             names: ctx_names.clone(),

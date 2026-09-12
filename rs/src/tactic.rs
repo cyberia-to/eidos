@@ -41,17 +41,19 @@ impl MetaEnv {
     pub fn apply(&self, t: &Term) -> Term {
         match t {
             Term::Var(_) | Term::Sort(_) | Term::Const(_) => t.clone(),
-            Term::Pi(a, b)   => Term::Pi(Box::new(self.apply(a)), Box::new(self.apply(b))),
-            Term::Lam(a, b)  => Term::Lam(Box::new(self.apply(a)), Box::new(self.apply(b))),
-            Term::App(f, a)  => Term::App(Box::new(self.apply(f)), Box::new(self.apply(a))),
-            Term::Let(a,v,b) => Term::Let(
+            Term::Pi(a, b) => Term::Pi(Box::new(self.apply(a)), Box::new(self.apply(b))),
+            Term::Lam(a, b) => Term::Lam(Box::new(self.apply(a)), Box::new(self.apply(b))),
+            Term::App(f, a) => Term::App(Box::new(self.apply(f)), Box::new(self.apply(a))),
+            Term::Let(a, v, b) => Term::Let(
                 Box::new(self.apply(a)),
                 Box::new(self.apply(v)),
                 Box::new(self.apply(b)),
             ),
             Term::Ind(id, ps) => Term::Ind(*id, ps.iter().map(|p| self.apply(p)).collect()),
-            Term::Ctor(id,k,args) => Term::Ctor(*id, *k, args.iter().map(|a| self.apply(a)).collect()),
-            Term::Elim(id,m,cs,tg) => Term::Elim(
+            Term::Ctor(id, k, args) => {
+                Term::Ctor(*id, *k, args.iter().map(|a| self.apply(a)).collect())
+            }
+            Term::Elim(id, m, cs, tg) => Term::Elim(
                 *id,
                 Box::new(self.apply(m)),
                 cs.iter().map(|c| self.apply(c)).collect(),
@@ -64,7 +66,7 @@ impl MetaEnv {
             ),
             Term::Meta(id) => match self.lookup(*id) {
                 Some(v) => self.apply(v),
-                None    => t.clone(),
+                None => t.clone(),
             },
         }
     }
@@ -112,7 +114,9 @@ impl ProofState {
         }
     }
 
-    pub fn is_complete(&self) -> bool { self.goals.is_empty() }
+    pub fn is_complete(&self) -> bool {
+        self.goals.is_empty()
+    }
 
     /// Assemble the proof term and kernel-verify it.
     pub fn verify(&self, theorem_ty: &Term) -> Result<(), TacticError> {
@@ -120,12 +124,10 @@ impl ProofState {
             return Err(TacticError::Incomplete(self.goals.len()));
         }
         // Root meta must be assigned
-        let root_term = self.metas.lookup(0)
-            .ok_or(TacticError::Incomplete(1))?;
+        let root_term = self.metas.lookup(0).ok_or(TacticError::Incomplete(1))?;
         let root_applied = self.metas.apply(root_term);
         let empty_ctx: Ctx = vec![];
-        check(&self.env, &empty_ctx, &root_applied, theorem_ty)
-            .map_err(TacticError::Kernel)
+        check(&self.env, &empty_ctx, &root_applied, theorem_ty).map_err(TacticError::Kernel)
     }
 }
 
@@ -180,7 +182,10 @@ pub fn tac_intro(state: &mut ProofState, _name: &str) -> Result<(), TacticError>
             let new_meta = state.metas.fresh();
             // Assign the root meta now: λx:A. <new_meta>
             // When new_meta is later filled by another tactic, metas.apply will substitute.
-            state.metas.assign(old_meta, Term::Lam(a.clone(), Box::new(Term::Meta(new_meta))));
+            state.metas.assign(
+                old_meta,
+                Term::Lam(a.clone(), Box::new(Term::Meta(new_meta))),
+            );
             push_var(&mut goal.local_ctx, *a);
             goal.names.insert(0, _name.to_string());
             goal.expected = new_expected;
@@ -230,8 +235,8 @@ pub fn tac_rfl(state: &mut ProofState) -> Result<(), TacticError> {
     match &expected_whnf {
         Term::Ind(id, params) if *id == EQ_ID && params.len() == 3 => {
             let a_ty = &params[0];
-            let lhs  = &params[1];
-            let rhs  = &params[2];
+            let lhs = &params[1];
+            let rhs = &params[2];
             if def_eq(env, &ctx, lhs, rhs) {
                 // refl : Eq A a a  = CTOR(EQ_ID, 0, [A, a, a]) — arity=3
                 let refl = Term::Ctor(EQ_ID, 0, vec![a_ty.clone(), lhs.clone(), lhs.clone()]);
@@ -240,7 +245,9 @@ pub fn tac_rfl(state: &mut ProofState) -> Result<(), TacticError> {
                 state.goals.remove(0);
                 Ok(())
             } else {
-                Err(TacticError::TacticFailed("rfl: sides not definitionally equal".into()))
+                Err(TacticError::TacticFailed(
+                    "rfl: sides not definitionally equal".into(),
+                ))
             }
         }
         _ => Err(TacticError::TacticFailed("rfl: goal is not an Eq".into())),
@@ -255,7 +262,9 @@ pub fn tac_show(state: &mut ProofState, new_ty: Term) -> Result<(), TacticError>
         goal.expected = new_ty;
         Ok(())
     } else {
-        Err(TacticError::TacticFailed("show: type not definitionally equal to goal".into()))
+        Err(TacticError::TacticFailed(
+            "show: type not definitionally equal to goal".into(),
+        ))
     }
 }
 
@@ -263,10 +272,14 @@ pub fn tac_show(state: &mut ProofState, new_ty: Term) -> Result<(), TacticError>
 pub fn tac_revert(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticError> {
     let goal = state.goals.first_mut().ok_or(TacticError::NoGoals)?;
     if hyp_idx >= goal.local_ctx.len() {
-        return Err(TacticError::TacticFailed("revert: hypothesis not in context".into()));
+        return Err(TacticError::TacticFailed(
+            "revert: hypothesis not in context".into(),
+        ));
     }
     let entry = goal.local_ctx.remove(hyp_idx);
-    if hyp_idx < goal.names.len() { goal.names.remove(hyp_idx); }
+    if hyp_idx < goal.names.len() {
+        goal.names.remove(hyp_idx);
+    }
     let a = entry.ty().clone();
     // shift expected_type down by 1 for the removed binder ... actually when we remove
     // entry at index 0 (innermost), the goal gets wrapped in PI(A, old_goal).
@@ -281,7 +294,9 @@ pub fn tac_revert(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticEr
 pub fn tac_clear(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticError> {
     let goal = state.goals.first_mut().ok_or(TacticError::NoGoals)?;
     if hyp_idx >= goal.local_ctx.len() {
-        return Err(TacticError::TacticFailed("clear: hypothesis not in context".into()));
+        return Err(TacticError::TacticFailed(
+            "clear: hypothesis not in context".into(),
+        ));
     }
     // Check h not free in goal type
     if var_free_in(hyp_idx, &goal.expected) {
@@ -289,7 +304,9 @@ pub fn tac_clear(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticErr
     }
     // Check not free in any other hypothesis
     for (i, entry) in goal.local_ctx.iter().enumerate() {
-        if i == hyp_idx { continue; }
+        if i == hyp_idx {
+            continue;
+        }
         if var_free_in(hyp_idx, entry.ty()) {
             return Err(TacticError::HypothesisInUse(format!("in hypothesis {i}")));
         }
@@ -300,13 +317,15 @@ pub fn tac_clear(state: &mut ProofState, hyp_idx: usize) -> Result<(), TacticErr
         }
     }
     goal.local_ctx.remove(hyp_idx);
-    if hyp_idx < goal.names.len() { goal.names.remove(hyp_idx); }
+    if hyp_idx < goal.names.len() {
+        goal.names.remove(hyp_idx);
+    }
     // Decrement all free variable indices > hyp_idx in the goal and remaining hypotheses.
     // Since we removed VAR(hyp_idx), any VAR(j) with j > hyp_idx must become VAR(j-1).
     goal.expected = decrement_above(&goal.expected, hyp_idx as u64);
     for entry in goal.local_ctx.iter_mut() {
         match entry {
-            CtxEntry::Var(a)    => *a = decrement_above(a, hyp_idx as u64),
+            CtxEntry::Var(a) => *a = decrement_above(a, hyp_idx as u64),
             CtxEntry::Let(a, v) => {
                 *a = decrement_above(a, hyp_idx as u64);
                 *v = decrement_above(v, hyp_idx as u64);
@@ -326,7 +345,11 @@ fn decrement_above_at(t: &Term, threshold: u64, depth: u64) -> Term {
     match t {
         Term::Var(i) => {
             let adjusted = threshold + depth; // the threshold in the current de Bruijn scope
-            if *i > adjusted { Term::Var(i - 1) } else { Term::Var(*i) }
+            if *i > adjusted {
+                Term::Var(i - 1)
+            } else {
+                Term::Var(*i)
+            }
         }
         Term::Sort(u) => Term::Sort(*u),
         Term::Const(id) => Term::Const(*id),
@@ -348,14 +371,25 @@ fn decrement_above_at(t: &Term, threshold: u64, depth: u64) -> Term {
             Box::new(decrement_above_at(v, threshold, depth)),
             Box::new(decrement_above_at(b, threshold, depth + 1)),
         ),
-        Term::Ind(id, ps) =>
-            Term::Ind(*id, ps.iter().map(|p| decrement_above_at(p, threshold, depth)).collect()),
-        Term::Ctor(id, k, args) =>
-            Term::Ctor(*id, *k, args.iter().map(|a| decrement_above_at(a, threshold, depth)).collect()),
+        Term::Ind(id, ps) => Term::Ind(
+            *id,
+            ps.iter()
+                .map(|p| decrement_above_at(p, threshold, depth))
+                .collect(),
+        ),
+        Term::Ctor(id, k, args) => Term::Ctor(
+            *id,
+            *k,
+            args.iter()
+                .map(|a| decrement_above_at(a, threshold, depth))
+                .collect(),
+        ),
         Term::Elim(id, m, cs, tg) => Term::Elim(
             *id,
             Box::new(decrement_above_at(m, threshold, depth)),
-            cs.iter().map(|c| decrement_above_at(c, threshold, depth)).collect(),
+            cs.iter()
+                .map(|c| decrement_above_at(c, threshold, depth))
+                .collect(),
             Box::new(decrement_above_at(tg, threshold, depth)),
         ),
         Term::EqSubst(p, h, pf) => Term::EqSubst(
@@ -384,7 +418,10 @@ where
     let saved = state.clone();
     match tac(state) {
         Ok(()) => Ok(()),
-        Err(_) => { *state = saved; Ok(()) }
+        Err(_) => {
+            *state = saved;
+            Ok(())
+        }
     }
 }
 
@@ -398,7 +435,10 @@ where
         let saved = state.clone();
         match branch(state) {
             Ok(()) => return Ok(()),
-            Err(e) => { *state = saved; last_err = e; }
+            Err(e) => {
+                *state = saved;
+                last_err = e;
+            }
         }
     }
     Err(last_err)
@@ -414,19 +454,25 @@ fn var_free_at(idx: u64, t: &Term, depth: u64) -> bool {
     match t {
         Term::Var(i) => *i == idx + depth,
         Term::Sort(_) | Term::Const(_) => false,
-        Term::Pi(a, b) | Term::Lam(a, b) =>
-            var_free_at(idx, a, depth) || var_free_at(idx, b, depth + 1),
+        Term::Pi(a, b) | Term::Lam(a, b) => {
+            var_free_at(idx, a, depth) || var_free_at(idx, b, depth + 1)
+        }
         Term::App(f, a) => var_free_at(idx, f, depth) || var_free_at(idx, a, depth),
-        Term::Let(a, v, b) =>
-            var_free_at(idx, a, depth) || var_free_at(idx, v, depth) || var_free_at(idx, b, depth + 1),
+        Term::Let(a, v, b) => {
+            var_free_at(idx, a, depth)
+                || var_free_at(idx, v, depth)
+                || var_free_at(idx, b, depth + 1)
+        }
         Term::Ind(_, ps) => ps.iter().any(|p| var_free_at(idx, p, depth)),
         Term::Ctor(_, _, args) => args.iter().any(|a| var_free_at(idx, a, depth)),
-        Term::Elim(_, m, cs, tg) =>
+        Term::Elim(_, m, cs, tg) => {
             var_free_at(idx, m, depth)
-            || cs.iter().any(|c| var_free_at(idx, c, depth))
-            || var_free_at(idx, tg, depth),
-        Term::EqSubst(p, h, pf) =>
-            var_free_at(idx, p, depth) || var_free_at(idx, h, depth) || var_free_at(idx, pf, depth),
+                || cs.iter().any(|c| var_free_at(idx, c, depth))
+                || var_free_at(idx, tg, depth)
+        }
+        Term::EqSubst(p, h, pf) => {
+            var_free_at(idx, p, depth) || var_free_at(idx, h, depth) || var_free_at(idx, pf, depth)
+        }
         Term::Meta(_) => false,
     }
 }
@@ -434,7 +480,7 @@ fn var_free_at(idx: u64, t: &Term, depth: u64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::{std_env, nat, nat_zero};
+    use crate::stdlib::{nat, nat_zero, std_env};
 
     #[test]
     fn exact_closes_goal() {
@@ -488,7 +534,7 @@ mod tests {
 
     #[test]
     fn rfl_closes_eq() {
-        use crate::stdlib::{EQ_ID, nat_zero};
+        use crate::stdlib::{nat_zero, EQ_ID};
         let env = std_env();
         // Goal: Eq Nat zero zero
         let goal_ty = Term::Ind(EQ_ID, vec![nat(), nat_zero(), nat_zero()]);
@@ -518,10 +564,14 @@ mod tests {
     fn first_picks_first_success() {
         let env = std_env();
         let mut ps = ProofState::new(env, nat());
-        tac_first(&mut ps, vec![
-            |s: &mut ProofState| tac_intro(s, "n"),  // fails
-            |s: &mut ProofState| tac_exact(s, nat_zero()), // succeeds
-        ]).unwrap();
+        tac_first(
+            &mut ps,
+            vec![
+                |s: &mut ProofState| tac_intro(s, "n"),        // fails
+                |s: &mut ProofState| tac_exact(s, nat_zero()), // succeeds
+            ],
+        )
+        .unwrap();
         assert!(ps.is_complete());
     }
 
@@ -580,7 +630,10 @@ mod tests {
         assert_eq!(ps.goals[0].local_ctx.len(), 2);
         tac_exact(&mut ps, Term::Var(1)).unwrap(); // VAR(1) = n (outer)
         assert!(ps.is_complete());
-        assert!(ps.verify(&goal_ty).is_ok(), "double intro+exact verify failed");
+        assert!(
+            ps.verify(&goal_ty).is_ok(),
+            "double intro+exact verify failed"
+        );
     }
 
     #[test]
@@ -590,10 +643,10 @@ mod tests {
         // expected references VAR(1) = Nat
         let goal_ty = Term::Var(1); // refers to the outer Nat hypothesis
         let mut ps = ProofState::new(env, goal_ty);
-        push_var(&mut ps.goals[0].local_ctx, nat());  // VAR(0) = Nat
+        push_var(&mut ps.goals[0].local_ctx, nat()); // VAR(0) = Nat
         push_var(&mut ps.goals[0].local_ctx, crate::stdlib::bool_ty()); // VAR(0)=Bool, VAR(1)=Nat
-        // Reverse: after 2 push_vars, ctx = [Bool, Nat], expected still VAR(1)
-        // Clear VAR(0) = Bool (must not appear free in goal which has VAR(1))
+                                                                        // Reverse: after 2 push_vars, ctx = [Bool, Nat], expected still VAR(1)
+                                                                        // Clear VAR(0) = Bool (must not appear free in goal which has VAR(1))
         tac_clear(&mut ps, 0).unwrap();
         // After clear, ctx = [Nat], and old VAR(1) should become VAR(0)
         assert_eq!(ps.goals[0].local_ctx.len(), 1);

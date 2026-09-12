@@ -2,27 +2,26 @@
 // spec: specs/stdlib.md
 // Untrusted shell — declares terms; kernel verifies them.
 
-pub mod ids;
 pub mod binary;
 pub mod binary_nat;
-pub mod reduction_certificate;
-pub mod nat;
 pub mod bool;
-pub mod list;
-pub mod prop;
+pub mod ids;
 pub mod le;
+pub mod list;
+pub mod nat;
+pub mod prop;
+pub mod reduction_certificate;
 
 // ── Re-exports ────────────────────────────────────────────────────────────────
 
+pub use bool::{bool_false, bool_not, bool_not_false_eq, bool_not_true_eq, bool_true, bool_ty};
 pub use ids::*;
-pub use nat::{nat, nat_zero, nat_next, nat_lit, nat_add, nat_mul, nat_le, nat_sub,
-              nat_min_term, nat_max_term};
-pub use bool::{bool_ty, bool_false, bool_true, bool_not,
-               bool_not_false_eq, bool_not_true_eq};
-pub use list::{list, list_nil, list_link};
-pub use prop::{eq_refl, false_elim, and_intro, and_right, and_left,
-               fin, fin_zero, fin_next};
-pub use le::{le, le_refl, le_step, le_of_lits, le_type_lam, le_type_pi};
+pub use le::{le, le_of_lits, le_refl, le_step, le_type_lam, le_type_pi};
+pub use list::{list, list_link, list_nil};
+pub use nat::{
+    nat, nat_add, nat_le, nat_lit, nat_max_term, nat_min_term, nat_mul, nat_next, nat_sub, nat_zero,
+};
+pub use prop::{and_intro, and_left, and_right, eq_refl, false_elim, fin, fin_next, fin_zero};
 
 use crate::{env::Env, term::Term};
 
@@ -53,42 +52,57 @@ pub fn add_stdlib_globals(globals: &mut std::collections::HashMap<String, (Term,
     use crate::term::Term as T;
 
     // Types
-    globals.insert("Nat".into(),  (nat(), T::Sort(1)));
+    globals.insert("Nat".into(), (nat(), T::Sort(1)));
     globals.insert("Bool".into(), (bool_ty(), T::Sort(1)));
     globals.insert("True".into(), (T::Ind(TRUE_ID, vec![]), T::Sort(0)));
-    globals.insert("False".into(),(T::Ind(FALSE_ID, vec![]), T::Sort(0)));
+    globals.insert("False".into(), (T::Ind(FALSE_ID, vec![]), T::Sort(0)));
 
     // Bool values
     globals.insert("Bool.false".into(), (bool_false(), bool_ty()));
-    globals.insert("Bool.true".into(),  (bool_true(),  bool_ty()));
-    globals.insert("true".into(),       (bool_true(),  bool_ty()));
-    globals.insert("false".into(),      (bool_false(), bool_ty()));
+    globals.insert("Bool.true".into(), (bool_true(), bool_ty()));
+    globals.insert("true".into(), (bool_true(), bool_ty()));
+    globals.insert("false".into(), (bool_false(), bool_ty()));
 
     // Nat constructors
     globals.insert("Nat.zero".into(), (nat_zero(), nat()));
-    globals.insert("Nat.succ".into(), (
-        T::Lam(Box::new(nat()), Box::new(nat_next(T::Var(0)))),
-        T::Pi(Box::new(nat()), Box::new(nat())),
-    ));
+    globals.insert(
+        "Nat.succ".into(),
+        (
+            T::Lam(Box::new(nat()), Box::new(nat_next(T::Var(0)))),
+            T::Pi(Box::new(nat()), Box::new(nat())),
+        ),
+    );
 
     // Nat arithmetic
-    let add_ty = T::Pi(Box::new(nat()), Box::new(T::Pi(Box::new(nat()), Box::new(nat()))));
-    let add_term = T::Lam(Box::new(nat()), Box::new(T::Lam(
+    let add_ty = T::Pi(
         Box::new(nat()),
-        Box::new(nat_add(T::Var(1), T::Var(0))),
-    )));
+        Box::new(T::Pi(Box::new(nat()), Box::new(nat()))),
+    );
+    let add_term = T::Lam(
+        Box::new(nat()),
+        Box::new(T::Lam(
+            Box::new(nat()),
+            Box::new(nat_add(T::Var(1), T::Var(0))),
+        )),
+    );
     globals.insert("Nat.add".into(), (add_term, add_ty.clone()));
 
-    let mul_term = T::Lam(Box::new(nat()), Box::new(T::Lam(
+    let mul_term = T::Lam(
         Box::new(nat()),
-        Box::new(nat_mul(T::Var(1), T::Var(0))),
-    )));
+        Box::new(T::Lam(
+            Box::new(nat()),
+            Box::new(nat_mul(T::Var(1), T::Var(0))),
+        )),
+    );
     globals.insert("Nat.mul".into(), (mul_term, add_ty.clone()));
 
-    let sub_term = T::Lam(Box::new(nat()), Box::new(T::Lam(
+    let sub_term = T::Lam(
         Box::new(nat()),
-        Box::new(nat_sub(T::Var(1), T::Var(0))),
-    )));
+        Box::new(T::Lam(
+            Box::new(nat()),
+            Box::new(nat_sub(T::Var(1), T::Var(0))),
+        )),
+    );
     globals.insert("Nat.sub".into(), (sub_term, add_ty.clone()));
 
     // Nat.min and Nat.max
@@ -118,48 +132,75 @@ pub fn add_stdlib_globals(globals: &mut std::collections::HashMap<String, (Term,
 
     // Nat axiom lemmas (bootstrap axioms — proved in Lean, trusted here)
     // Nat.min_le_right : Π(a b : Nat). Le (Nat.min a b) b
-    let min_ref = T::Lam(Box::new(nat()), Box::new(T::Lam(
+    let min_ref = T::Lam(
         Box::new(nat()),
-        Box::new(T::Ind(LE_ID, vec![
-            T::App(
-                Box::new(T::App(Box::new(nat_min_term()), Box::new(T::Var(1)))),
-                Box::new(T::Var(0)),
-            ),
-            T::Var(0),
-        ])),
-    )));
-    let min_le_ty = T::Pi(Box::new(nat()), Box::new(T::Pi(
+        Box::new(T::Lam(
+            Box::new(nat()),
+            Box::new(T::Ind(
+                LE_ID,
+                vec![
+                    T::App(
+                        Box::new(T::App(Box::new(nat_min_term()), Box::new(T::Var(1)))),
+                        Box::new(T::Var(0)),
+                    ),
+                    T::Var(0),
+                ],
+            )),
+        )),
+    );
+    let min_le_ty = T::Pi(
         Box::new(nat()),
-        Box::new(T::Ind(LE_ID, vec![
-            T::App(
-                Box::new(T::App(Box::new(nat_min_term()), Box::new(T::Var(1)))),
-                Box::new(T::Var(0)),
-            ),
-            T::Var(0),
-        ])),
-    )));
+        Box::new(T::Pi(
+            Box::new(nat()),
+            Box::new(T::Ind(
+                LE_ID,
+                vec![
+                    T::App(
+                        Box::new(T::App(Box::new(nat_min_term()), Box::new(T::Var(1)))),
+                        Box::new(T::Var(0)),
+                    ),
+                    T::Var(0),
+                ],
+            )),
+        )),
+    );
     globals.insert("Nat.min_le_right".into(), (min_ref, min_le_ty));
 
     // Nat.div_le_self : Π(n k : Nat). Le (Nat.div n k) n
     // Stored as opaque axiom (self-typed)
-    let div_le_self_ty = T::Pi(Box::new(nat()), Box::new(T::Pi(
+    let div_le_self_ty = T::Pi(
         Box::new(nat()),
-        Box::new(T::Ind(LE_ID, vec![
-            T::App(
-                Box::new(T::App(Box::new(le::nat_div_axiom()), Box::new(T::Var(1)))),
-                Box::new(T::Var(0)),
-            ),
-            T::Var(1),
-        ])),
-    )));
-    globals.insert("Nat.div_le_self".into(), (div_le_self_ty.clone(), div_le_self_ty));
+        Box::new(T::Pi(
+            Box::new(nat()),
+            Box::new(T::Ind(
+                LE_ID,
+                vec![
+                    T::App(
+                        Box::new(T::App(Box::new(le::nat_div_axiom()), Box::new(T::Var(1)))),
+                        Box::new(T::Var(0)),
+                    ),
+                    T::Var(1),
+                ],
+            )),
+        )),
+    );
+    globals.insert(
+        "Nat.div_le_self".into(),
+        (div_le_self_ty.clone(), div_le_self_ty),
+    );
 
     // The three remaining lemmas (div_le_div_right, mul_le_mul_right,
     // mul_div_cancel_left) involve Le hypotheses — stored opaquely.
     // Surface proofs reference them by name and apply them.
     let opaque = T::Sort(0); // placeholder type for complex axioms
-    globals.insert("Nat.div_le_div_right".into(), (opaque.clone(), opaque.clone()));
-    globals.insert("Nat.mul_le_mul_right".into(), (opaque.clone(), opaque.clone()));
+    globals.insert(
+        "Nat.div_le_div_right".into(),
+        (opaque.clone(), opaque.clone()),
+    );
+    globals.insert(
+        "Nat.mul_le_mul_right".into(),
+        (opaque.clone(), opaque.clone()),
+    );
     globals.insert("Nat.mul_div_cancel_left".into(), (opaque.clone(), opaque));
 }
 
@@ -168,9 +209,14 @@ pub fn add_stdlib_globals(globals: &mut std::collections::HashMap<String, (Term,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{kernel::infer, reduce::{nf, whnf, def_eq}};
+    use crate::{
+        kernel::infer,
+        reduce::{def_eq, nf, whnf},
+    };
 
-    fn ctx() -> crate::ctx::Ctx { vec![] }
+    fn ctx() -> crate::ctx::Ctx {
+        vec![]
+    }
 
     #[test]
     fn nat_zero_type() {
@@ -196,7 +242,7 @@ mod tests {
     fn bool_ctors_type() {
         let env = std_env();
         assert_eq!(infer(&env, &ctx(), &bool_false()), Ok(bool_ty()));
-        assert_eq!(infer(&env, &ctx(), &bool_true()),  Ok(bool_ty()));
+        assert_eq!(infer(&env, &ctx(), &bool_true()), Ok(bool_ty()));
     }
 
     #[test]
@@ -216,27 +262,30 @@ mod tests {
     #[test]
     fn false_is_prop() {
         let env = std_env();
-        assert_eq!(infer(&env, &ctx(), &Term::Ind(FALSE_ID, vec![])), Ok(Term::Sort(0)));
+        assert_eq!(
+            infer(&env, &ctx(), &Term::Ind(FALSE_ID, vec![])),
+            Ok(Term::Sort(0))
+        );
     }
 
     #[test]
     fn true_is_prop() {
         let env = std_env();
-        assert_eq!(infer(&env, &ctx(), &Term::Ind(TRUE_ID, vec![])), Ok(Term::Sort(0)));
+        assert_eq!(
+            infer(&env, &ctx(), &Term::Ind(TRUE_ID, vec![])),
+            Ok(Term::Sort(0))
+        );
     }
 
     #[test]
     fn nat_add_by_elim() {
         let env = std_env();
         let three = nat_lit(3);
-        let two   = nat_lit(2);
+        let two = nat_lit(2);
         let motive = Term::Lam(Box::new(nat()), Box::new(nat()));
         let case_next = Term::Lam(
             Box::new(nat()),
-            Box::new(Term::Lam(
-                Box::new(nat()),
-                Box::new(nat_next(Term::Var(0))),
-            )),
+            Box::new(Term::Lam(Box::new(nat()), Box::new(nat_next(Term::Var(0))))),
         );
         let elim = Term::Elim(
             NAT_ID,
@@ -274,7 +323,7 @@ mod tests {
     fn eq_refl_kernel_check() {
         let env = std_env();
         let proof = eq_refl(nat(), nat_zero());
-        let ty    = Term::Ind(EQ_ID, vec![nat(), nat_zero(), nat_zero()]);
+        let ty = Term::Ind(EQ_ID, vec![nat(), nat_zero(), nat_zero()]);
         assert_eq!(crate::kernel::check(&env, &ctx(), &proof, &ty), Ok(()));
     }
 
@@ -285,7 +334,10 @@ mod tests {
         let intro = Term::Ctor(TRUE_ID, 0, vec![]);
         let h = and_intro(t_ty.clone(), t_ty.clone(), intro.clone(), intro);
         let extracted = and_right(t_ty.clone(), t_ty.clone(), h);
-        assert_eq!(crate::kernel::check(&env, &ctx(), &extracted, &t_ty), Ok(()));
+        assert_eq!(
+            crate::kernel::check(&env, &ctx(), &extracted, &t_ty),
+            Ok(())
+        );
     }
 
     #[test]
@@ -319,14 +371,24 @@ mod tests {
         let env = std_env();
         let min_fn = nat_min_term();
         // min 3 5 = 3
-        let result = nf(&env, &ctx(),
-            Term::App(Box::new(Term::App(Box::new(min_fn.clone()), Box::new(nat_lit(3)))),
-                      Box::new(nat_lit(5))));
+        let result = nf(
+            &env,
+            &ctx(),
+            Term::App(
+                Box::new(Term::App(Box::new(min_fn.clone()), Box::new(nat_lit(3)))),
+                Box::new(nat_lit(5)),
+            ),
+        );
         assert_eq!(result, nat_lit(3), "min 3 5 ≠ 3: {result:?}");
         // min 5 3 = 3
-        let result2 = nf(&env, &ctx(),
-            Term::App(Box::new(Term::App(Box::new(min_fn), Box::new(nat_lit(5)))),
-                      Box::new(nat_lit(3))));
+        let result2 = nf(
+            &env,
+            &ctx(),
+            Term::App(
+                Box::new(Term::App(Box::new(min_fn), Box::new(nat_lit(5)))),
+                Box::new(nat_lit(3)),
+            ),
+        );
         assert_eq!(result2, nat_lit(3), "min 5 3 ≠ 3: {result2:?}");
     }
 
@@ -335,14 +397,24 @@ mod tests {
         let env = std_env();
         let max_fn = nat_max_term();
         // max 3 5 = 5
-        let result = nf(&env, &ctx(),
-            Term::App(Box::new(Term::App(Box::new(max_fn.clone()), Box::new(nat_lit(3)))),
-                      Box::new(nat_lit(5))));
+        let result = nf(
+            &env,
+            &ctx(),
+            Term::App(
+                Box::new(Term::App(Box::new(max_fn.clone()), Box::new(nat_lit(3)))),
+                Box::new(nat_lit(5)),
+            ),
+        );
         assert_eq!(result, nat_lit(5), "max 3 5 ≠ 5");
         // max 5 3 = 5
-        let result2 = nf(&env, &ctx(),
-            Term::App(Box::new(Term::App(Box::new(max_fn), Box::new(nat_lit(5)))),
-                      Box::new(nat_lit(3))));
+        let result2 = nf(
+            &env,
+            &ctx(),
+            Term::App(
+                Box::new(Term::App(Box::new(max_fn), Box::new(nat_lit(5)))),
+                Box::new(nat_lit(3)),
+            ),
+        );
         assert_eq!(result2, nat_lit(5), "max 5 3 ≠ 5");
     }
 
@@ -350,6 +422,9 @@ mod tests {
     fn le_ind_is_prop() {
         let env = std_env();
         let le_ty = Term::Ind(LE_ID, vec![nat_lit(2), nat_lit(3)]);
-        assert_eq!(whnf(&env, &ctx(), infer(&env, &ctx(), &le_ty).unwrap()), Term::Sort(0));
+        assert_eq!(
+            whnf(&env, &ctx(), infer(&env, &ctx(), &le_ty).unwrap()),
+            Term::Sort(0)
+        );
     }
 }

@@ -1,9 +1,9 @@
 // tactic_ext/arith.rs — tac_omega, tac_simp, tac_decide
+use crate::tactic::{ProofState, TacticError};
 use crate::{
     stdlib::{eq_refl, le_of_lits, EQ_ID, LE_ID, NAT_ID},
     term::Term,
 };
-use crate::tactic::{ProofState, TacticError};
 
 /// omega — solve decidable Nat arithmetic goals.
 /// Normalizes the goal, then closes if it reduces to Eq _ a b where a ≡ b,
@@ -18,7 +18,8 @@ pub fn tac_omega(state: &mut ProofState) -> Result<(), TacticError> {
 
     // Case 1: Eq _ a b with def_eq(a, b)
     if let Term::Ind(id, ref params) = reduced {
-        if id == EQ_ID && params.len() == 3
+        if id == EQ_ID
+            && params.len() == 3
             && crate::reduce::def_eq(env, &ctx, &params[1], &params[2])
         {
             let proof = eq_refl(params[0].clone(), params[1].clone());
@@ -28,7 +29,10 @@ pub fn tac_omega(state: &mut ProofState) -> Result<(), TacticError> {
         }
         // Case 2: Le a b where both reduce to Nat literals
         if id == LE_ID && params.len() == 2 {
-            if let (Some(n), Some(m)) = (nat_lit_val(&params[0], env, &ctx), nat_lit_val(&params[1], env, &ctx)) {
+            if let (Some(n), Some(m)) = (
+                nat_lit_val(&params[0], env, &ctx),
+                nat_lit_val(&params[1], env, &ctx),
+            ) {
                 if n <= m {
                     let proof = le_of_lits(n, m);
                     state.metas.assign(meta, proof);
@@ -38,7 +42,9 @@ pub fn tac_omega(state: &mut ProofState) -> Result<(), TacticError> {
             }
         }
     }
-    Err(TacticError::TacticFailed("omega: cannot solve this goal".into()))
+    Err(TacticError::TacticFailed(
+        "omega: cannot solve this goal".into(),
+    ))
 }
 
 /// simp — normalize the goal type via full β/δ/ι reduction.
@@ -54,7 +60,9 @@ pub fn tac_simp(state: &mut ProofState) -> Result<(), TacticError> {
 /// For Le/Lt goals with concrete Nat values, builds the proof term.
 pub fn tac_decide(state: &mut ProofState) -> Result<(), TacticError> {
     let saved = state.clone();
-    if crate::tactic::tac_rfl(state).is_ok() { return Ok(()); }
+    if crate::tactic::tac_rfl(state).is_ok() {
+        return Ok(());
+    }
     *state = saved;
     tac_omega(state)
 }

@@ -20,7 +20,7 @@ pub fn omega_solve(env: &Env, ctx: &Ctx, goal: &Term) -> Option<Term> {
     // Step 2: try structural arithmetic laws
     if let Term::Ind(id, params) = nf(env, ctx, goal.clone()) {
         if id == EQ_ID && params.len() == 3 {
-            let ty  = &params[0];
+            let ty = &params[0];
             let lhs = &params[1];
             let rhs = &params[2];
             if let Some(proof) = try_arith_laws(env, ctx, ty, lhs, rhs) {
@@ -35,10 +35,8 @@ pub fn omega_solve(env: &Env, ctx: &Ctx, goal: &Term) -> Option<Term> {
 pub fn try_rfl(env: &Env, ctx: &Ctx, goal: &Term) -> Option<Term> {
     let reduced = nf(env, ctx, goal.clone());
     if let Term::Ind(id, ref params) = reduced {
-        if id == EQ_ID && params.len() == 3 {
-            if def_eq(env, ctx, &params[1], &params[2]) {
-                return Some(eq_refl(params[0].clone(), params[1].clone()));
-            }
+        if id == EQ_ID && params.len() == 3 && def_eq(env, ctx, &params[1], &params[2]) {
+            return Some(eq_refl(params[0].clone(), params[1].clone()));
         }
     }
     None
@@ -60,10 +58,9 @@ fn try_arith_laws(env: &Env, ctx: &Ctx, ty: &Term, lhs: &Term, rhs: &Term) -> Op
 
     // Try commutativity: add n m = add m n
     // We check if lhs and rhs have the same multiset of addends
-    if let (Some(lhs_addends), Some(rhs_addends)) = (
-        extract_add_terms(&lhs_nf),
-        extract_add_terms(&rhs_nf),
-    ) {
+    if let (Some(lhs_addends), Some(rhs_addends)) =
+        (extract_add_terms(&lhs_nf), extract_add_terms(&rhs_nf))
+    {
         if addends_equal(env, ctx, &lhs_addends, &rhs_addends) {
             // Construct a proof by normalization — if both sides normalize to the same
             // expression, rfl works. Otherwise, produce a commutativity proof.
@@ -95,7 +92,9 @@ fn extract_add_terms(t: &Term) -> Option<Vec<Term>> {
 
 /// Check if two lists of addends are equal as multisets (up to def_eq).
 fn addends_equal(env: &Env, ctx: &Ctx, a: &[Term], b: &[Term]) -> bool {
-    if a.len() != b.len() { return false; }
+    if a.len() != b.len() {
+        return false;
+    }
     let mut used = vec![false; b.len()];
     'outer: for ta in a {
         for (j, tb) in b.iter().enumerate() {
@@ -130,7 +129,9 @@ pub fn eval_nat(env: &Env, ctx: &Ctx, t: &Term) -> Option<u64> {
 /// Build a Nat term from a numeric literal.
 pub fn build_nat(n: u64) -> Term {
     let mut t = nat_zero();
-    for _ in 0..n { t = crate::stdlib::nat_next(t); }
+    for _ in 0..n {
+        t = crate::stdlib::nat_next(t);
+    }
     t
 }
 
@@ -138,10 +139,13 @@ pub fn build_nat(n: u64) -> Term {
 pub fn eval_add_expr(env: &Env, ctx: &Ctx, t: &Term) -> Option<u64> {
     match whnf(env, ctx, t.clone()) {
         Term::Ctor(id, k, ref args) if id == NAT_ID => {
-            if k == NAT_ZERO { Some(0) }
-            else if k == NAT_NEXT && args.len() == 1 {
+            if k == NAT_ZERO {
+                Some(0)
+            } else if k == NAT_NEXT && args.len() == 1 {
                 eval_add_expr(env, ctx, &args[0]).map(|n| n + 1)
-            } else { None }
+            } else {
+                None
+            }
         }
         Term::Elim(id, _, ref cases, ref target) if id == NAT_ID && cases.len() == 2 => {
             // Recognize add pattern: [m, λ_.λih.S(ih)]
@@ -160,7 +164,9 @@ mod tests {
     use super::*;
     use crate::stdlib::{nat_add, nat_lit, std_env};
 
-    fn ctx() -> Ctx { vec![] }
+    fn ctx() -> Ctx {
+        vec![]
+    }
 
     #[test]
     fn omega_concrete_eq() {

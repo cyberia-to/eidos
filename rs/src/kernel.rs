@@ -34,8 +34,7 @@ pub fn infer(env: &Env, ctx: &Ctx, t: &Term) -> Result<Term, Error> {
     match t {
         // ── var ──────────────────────────────────────────────────────────────
         Term::Var(i) => {
-            let entry = ctx_lookup(ctx, *i as usize)
-                .ok_or(Error::UnboundVariable)?;
+            let entry = ctx_lookup(ctx, *i as usize).ok_or(Error::UnboundVariable)?;
             Ok(match entry {
                 CtxEntry::Var(a) | CtxEntry::Let(a, _) => a,
             })
@@ -108,7 +107,9 @@ pub fn infer(env: &Env, ctx: &Ctx, t: &Term) -> Result<Term, Error> {
         // CTOR(id, k, args): args = params[0..arity] ++ field_args[arity..]
         Term::Ctor(id, k, args) => {
             let desc = env.lookup(*id).ok_or(Error::UnknownInductive)?;
-            let ctor_tel = desc.constructors.get(*k as usize)
+            let ctor_tel = desc
+                .constructors
+                .get(*k as usize)
                 .ok_or(Error::ConstructorOutOfRange)?
                 .clone();
             let arity = desc.arity as usize;
@@ -134,12 +135,15 @@ pub fn infer(env: &Env, ctx: &Ctx, t: &Term) -> Result<Term, Error> {
             use crate::stdlib::EQ_ID;
             let h_ty = infer(env, ctx, h)?;
             let (h_a, h_b) = match whnf(env, ctx, h_ty) {
-                Term::Ind(id, params) if id == EQ_ID && params.len() == 3 =>
-                    (params[1].clone(), params[2].clone()),
-                _ => return Err(Error::TypeMismatch(
-                    Box::new(h.as_ref().clone()),
-                    Box::new(Term::Sort(0)),
-                )),
+                Term::Ind(id, params) if id == EQ_ID && params.len() == 3 => {
+                    (params[1].clone(), params[2].clone())
+                }
+                _ => {
+                    return Err(Error::TypeMismatch(
+                        Box::new(h.as_ref().clone()),
+                        Box::new(Term::Sort(0)),
+                    ))
+                }
             };
             let pf_a_ty = Term::App(p.clone(), Box::new(h_a));
             check(env, ctx, pf_a, &pf_a_ty)?;
@@ -169,26 +173,28 @@ pub fn infer(env: &Env, ctx: &Ctx, t: &Term) -> Result<Term, Error> {
             // Motive must be: IND(id, params') → SORT(s)
             let m_ty = infer(env, ctx, motive)?;
             let elim_sort = match whnf(env, ctx, m_ty) {
-                Term::Pi(dom, cod) => {
-                    match (whnf(env, ctx, *dom), whnf(env, ctx, *cod)) {
-                        (Term::Ind(mid, mparams), Term::Sort(s)) if mid == *id => {
-                            if mparams.len() != params.len()
-                                || !mparams.iter().zip(&params)
-                                    .all(|(a, b)| def_eq(env, ctx, a, b))
-                            {
-                                return Err(Error::TypeMismatch(
-                                    Box::new(motive.as_ref().clone()),
-                                    Box::new(Term::Sort(0)),
-                                ));
-                            }
-                            s
+                Term::Pi(dom, cod) => match (whnf(env, ctx, *dom), whnf(env, ctx, *cod)) {
+                    (Term::Ind(mid, mparams), Term::Sort(s)) if mid == *id => {
+                        if mparams.len() != params.len()
+                            || !mparams
+                                .iter()
+                                .zip(&params)
+                                .all(|(a, b)| def_eq(env, ctx, a, b))
+                        {
+                            return Err(Error::TypeMismatch(
+                                Box::new(motive.as_ref().clone()),
+                                Box::new(Term::Sort(0)),
+                            ));
                         }
-                        _ => return Err(Error::TypeMismatch(
+                        s
+                    }
+                    _ => {
+                        return Err(Error::TypeMismatch(
                             Box::new(motive.as_ref().clone()),
                             Box::new(Term::Sort(0)),
-                        )),
+                        ))
                     }
-                }
+                },
                 _ => return Err(Error::ExpectedPi),
             };
 
@@ -228,7 +234,10 @@ pub fn check(env: &Env, ctx: &Ctx, t: &Term, expected: &Term) -> Result<(), Erro
     if def_eq(env, ctx, &actual, expected) {
         Ok(())
     } else {
-        Err(Error::TypeMismatch(Box::new(actual), Box::new(expected.clone())))
+        Err(Error::TypeMismatch(
+            Box::new(actual),
+            Box::new(expected.clone()),
+        ))
     }
 }
 
@@ -243,7 +252,7 @@ fn require_sort(env: &Env, ctx: &Ctx, t: &Term) -> Result<u64, Error> {
 
 /// unroll_telescope(param_tel, params) → list of parameter types with earlier params substituted.
 /// param_tel: PI(P₀, PI(P₁, … _)).
-/// Result[i] is Pᵢ with params[0..i] substituted in.
+/// `Result[i]` is Pᵢ with `params[0..i]` substituted in.
 pub fn unroll_telescope(param_tel: &Term, params: &[Term]) -> Vec<Term> {
     let mut result = Vec::with_capacity(params.len());
     let mut tel = param_tel.clone();
@@ -283,24 +292,21 @@ pub fn apply_args(env: &Env, ctx: &Ctx, mut t: Term, args: &[Term]) -> Result<Te
 }
 
 /// Check all field types in an instantiated constructor telescope are in Prop (SORT(0)).
-fn check_all_fields_prop(env: &Env, ctx: &Ctx, ctor_tel: &Term, params: &[Term]) -> Result<(), Error> {
+fn check_all_fields_prop(
+    env: &Env,
+    ctx: &Ctx,
+    ctor_tel: &Term,
+    params: &[Term],
+) -> Result<(), Error> {
     let mut t = instantiate(ctor_tel, params);
-    loop {
-        match whnf(env, ctx, t) {
-            Term::Pi(a, rest) => {
-                // Check this field type is in SORT(0)
-                match infer(env, ctx, &a)? {
-                    Term::Sort(0) => {}
-                    _ => return Err(Error::TypeMismatch(
-                        Box::new(*a),
-                        Box::new(Term::Sort(0)),
-                    )),
-                }
-                // Advance: substitute a fresh var (the field) into rest
-                t = subst(&rest, &Term::Var(0));
-            }
-            _ => break, // return type — stop
+    while let Term::Pi(a, rest) = whnf(env, ctx, t) {
+        // Check this field type is in SORT(0)
+        match infer(env, ctx, &a)? {
+            Term::Sort(0) => {}
+            _ => return Err(Error::TypeMismatch(Box::new(*a), Box::new(Term::Sort(0)))),
         }
+        // Advance: substitute a fresh var (the field) into rest
+        t = subst(&rest, &Term::Var(0));
     }
     Ok(())
 }
@@ -340,10 +346,7 @@ fn build_case_type(
             if is_recursive {
                 // Recursive field: PI(Aᵢ, PI(IH, inner))
                 // IH type: APP(shift(motive, 1), VAR(0))  (motive shifted under field binder)
-                let ih_ty = Term::App(
-                    Box::new(shift(motive, 1)),
-                    Box::new(Term::Var(0)),
-                );
+                let ih_ty = Term::App(Box::new(shift(motive, 1)), Box::new(Term::Var(0)));
                 // Under 2 new binders (field=VAR(1), IH=VAR(0)):
                 // - rest needs shift(1) because we add IH binder on top of field binder
                 // - rev_fields shift by 2; current field = VAR(1)
@@ -352,10 +355,12 @@ fn build_case_type(
                     .chain(rev_fields.iter().map(|t| shift(t, 2)))
                     .collect();
                 let inner = build_case_type(
-                    env, ctx,
+                    env,
+                    ctx,
                     rest_shifted,
                     &shift(motive, 2),
-                    ctor_idx, ind_id,
+                    ctor_idx,
+                    ind_id,
                     &new_rev,
                 );
                 Term::Pi(a, Box::new(Term::Pi(Box::new(ih_ty), Box::new(inner))))
@@ -367,10 +372,12 @@ fn build_case_type(
                     .chain(rev_fields.iter().map(|t| shift(t, 1)))
                     .collect();
                 let inner = build_case_type(
-                    env, ctx,
+                    env,
+                    ctx,
                     rest_subst,
                     &shift(motive, 1),
-                    ctor_idx, ind_id,
+                    ctor_idx,
+                    ind_id,
                     &new_rev,
                 );
                 Term::Pi(a, Box::new(inner))
@@ -394,10 +401,18 @@ mod tests {
     use super::*;
     use crate::{ctx::CtxEntry, env::IndDesc, term::Term};
 
-    fn prop() -> Term { Term::Sort(0) }
-    fn type0() -> Term { Term::Sort(1) }
-    fn mk_env() -> Env { Env::new() }
-    fn mk_ctx() -> Ctx { vec![] }
+    fn prop() -> Term {
+        Term::Sort(0)
+    }
+    fn type0() -> Term {
+        Term::Sort(1)
+    }
+    fn mk_env() -> Env {
+        Env::new()
+    }
+    fn mk_ctx() -> Ctx {
+        vec![]
+    }
 
     #[test]
     fn infer_var_unbound() {
@@ -416,8 +431,14 @@ mod tests {
 
     #[test]
     fn infer_sort() {
-        assert_eq!(infer(&mk_env(), &mk_ctx(), &Term::Sort(0)), Ok(Term::Sort(1)));
-        assert_eq!(infer(&mk_env(), &mk_ctx(), &Term::Sort(1)), Ok(Term::Sort(2)));
+        assert_eq!(
+            infer(&mk_env(), &mk_ctx(), &Term::Sort(0)),
+            Ok(Term::Sort(1))
+        );
+        assert_eq!(
+            infer(&mk_env(), &mk_ctx(), &Term::Sort(1)),
+            Ok(Term::Sort(2))
+        );
     }
 
     #[test]
@@ -477,7 +498,10 @@ mod tests {
     #[test]
     fn check_ok() {
         // Sort(0) : Sort(1)
-        assert_eq!(check(&mk_env(), &mk_ctx(), &Term::Sort(0), &Term::Sort(1)), Ok(()));
+        assert_eq!(
+            check(&mk_env(), &mk_ctx(), &Term::Sort(0), &Term::Sort(1)),
+            Ok(())
+        );
     }
 
     #[test]
@@ -577,10 +601,7 @@ mod tests {
         // case_type for constructor 0 (zero, no fields) = APP(motive, CTOR(nat, 0, []))
         let nat_id: u64 = 1;
         let zero_tel = Term::Ind(nat_id, vec![]); // return type only
-        let motive = Term::Lam(
-            Box::new(Term::Ind(nat_id, vec![])),
-            Box::new(Term::Sort(0)),
-        );
+        let motive = Term::Lam(Box::new(Term::Ind(nat_id, vec![])), Box::new(Term::Sort(0)));
         let env = mk_env();
         let ctx = mk_ctx();
         let ct = case_type(&env, &ctx, &zero_tel, 0, nat_id, &motive, &[]);

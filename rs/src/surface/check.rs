@@ -1,22 +1,22 @@
 // check — elaborate and kernel-verify a sequence of surface declarations
 // spec: specs/surface.md § declaration elaboration
 
-use std::path::Path;
+use super::{
+    parser::{Proof, SurfaceDecl},
+    tactic_runner::{run_proof, RunError},
+};
 use crate::{
-    env::{ConstDecl, Env},
     elab::{
         ast::{Binder, Decl, Expr},
         core::{elab_expr, fold_lam, fold_pi, push_params, ElabState},
         decl::{elab_decl, fnv_hash},
         ElabError,
     },
+    env::{ConstDecl, Env},
     kernel,
     term::Term,
 };
-use super::{
-    parser::{Proof, SurfaceDecl},
-    tactic_runner::{run_proof, RunError},
-};
+use std::path::Path;
 
 // ── Error ─────────────────────────────────────────────────────────────────────
 
@@ -32,23 +32,29 @@ pub enum CheckError {
 impl std::fmt::Display for CheckError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CheckError::Elab(e)        => write!(f, "elaboration error: {e:?}"),
-            CheckError::Kernel(e)      => write!(f, "kernel error: {e:?}"),
-            CheckError::Tactic(e)      => write!(f, "tactic error: {e:?}"),
-            CheckError::ParseError(s)  => write!(f, "parse error: {s}"),
-            CheckError::Sorry(s)       => write!(f, "sorry: {s}"),
+            CheckError::Elab(e) => write!(f, "elaboration error: {e:?}"),
+            CheckError::Kernel(e) => write!(f, "kernel error: {e:?}"),
+            CheckError::Tactic(e) => write!(f, "tactic error: {e:?}"),
+            CheckError::ParseError(s) => write!(f, "parse error: {s}"),
+            CheckError::Sorry(s) => write!(f, "sorry: {s}"),
         }
     }
 }
 
 impl From<ElabError> for CheckError {
-    fn from(e: ElabError) -> Self { CheckError::Elab(e) }
+    fn from(e: ElabError) -> Self {
+        CheckError::Elab(e)
+    }
 }
 impl From<kernel::Error> for CheckError {
-    fn from(e: kernel::Error) -> Self { CheckError::Kernel(e) }
+    fn from(e: kernel::Error) -> Self {
+        CheckError::Kernel(e)
+    }
 }
 impl From<RunError> for CheckError {
-    fn from(e: RunError) -> Self { CheckError::Tactic(e) }
+    fn from(e: RunError) -> Self {
+        CheckError::Tactic(e)
+    }
 }
 
 // ── Result record ─────────────────────────────────────────────────────────────
@@ -58,11 +64,16 @@ impl From<RunError> for CheckError {
 pub struct DeclResult {
     pub name: String,
     pub kind: DeclKind,
-    pub ty:   Term,
+    pub ty: Term,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum DeclKind { Def, Theorem, Axiom, Inductive }
+pub enum DeclKind {
+    Def,
+    Theorem,
+    Axiom,
+    Inductive,
+}
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -85,7 +96,7 @@ pub fn check_file_with_base(
     let mut results = Vec::new();
     for decl in decls {
         match check_one_with_base(decl, st, env, base_dir) {
-            Ok(r)  => results.push(r),
+            Ok(r) => results.push(r),
             Err(e) => {
                 let name = decl_name(decl).unwrap_or("(unknown)").to_string();
                 return Err((name, e));
@@ -101,26 +112,47 @@ pub fn check_path(
     st: &mut ElabState,
     env: &mut Env,
 ) -> Result<Vec<DeclResult>, (String, CheckError)> {
-    let src = std::fs::read_to_string(path)
-        .map_err(|e| (path.display().to_string(), CheckError::ParseError(e.to_string())))?;
-    let toks = super::lex(&src)
-        .map_err(|e| ("lex".to_string(), CheckError::ParseError(e)))?;
-    let decls = super::parse_file(&toks)
-        .map_err(|e| ("parse".to_string(), CheckError::ParseError(e)))?;
+    let src = std::fs::read_to_string(path).map_err(|e| {
+        (
+            path.display().to_string(),
+            CheckError::ParseError(e.to_string()),
+        )
+    })?;
+    let toks = super::lex(&src).map_err(|e| ("lex".to_string(), CheckError::ParseError(e)))?;
+    let decls =
+        super::parse_file(&toks).map_err(|e| ("parse".to_string(), CheckError::ParseError(e)))?;
     check_file_with_base(&decls, st, env, path.parent())
 }
 
-fn check_one_with_base(decl: &SurfaceDecl, st: &mut ElabState, env: &mut Env, base_dir: Option<&Path>) -> Result<DeclResult, CheckError> {
+fn check_one_with_base(
+    decl: &SurfaceDecl,
+    st: &mut ElabState,
+    env: &mut Env,
+    base_dir: Option<&Path>,
+) -> Result<DeclResult, CheckError> {
     match decl {
-        SurfaceDecl::Def { name, params, ty, body } => {
+        SurfaceDecl::Def {
+            name,
+            params,
+            ty,
+            body,
+        } => {
             let (closed_ty, closed_body) = elab_def_term(st, env, params, ty, body)?;
-            st.globals.insert(name.clone(), (closed_body.clone(), closed_ty.clone()));
-            Ok(DeclResult { name: name.clone(), kind: DeclKind::Def, ty: closed_ty })
+            st.globals
+                .insert(name.clone(), (closed_body.clone(), closed_ty.clone()));
+            Ok(DeclResult {
+                name: name.clone(),
+                kind: DeclKind::Def,
+                ty: closed_ty,
+            })
         }
 
-        SurfaceDecl::Theorem { name, params, ty, proof } => {
-            check_theorem(st, env, name, params, ty, proof)
-        }
+        SurfaceDecl::Theorem {
+            name,
+            params,
+            ty,
+            proof,
+        } => check_theorem(st, env, name, params, ty, proof),
 
         SurfaceDecl::Axiom { name, params, ty } => {
             let n_before = st.locals.len();
@@ -129,17 +161,36 @@ fn check_one_with_base(decl: &SurfaceDecl, st: &mut ElabState, env: &mut Env, ba
             let ty_z = st.mctx.zonk(&ty_term);
             kernel::infer(env, &st.ctx(), &ty_z)?;
             let n_params = st.locals.len() - n_before;
-            for _ in 0..n_params { st.pop(); }
+            for _ in 0..n_params {
+                st.pop();
+            }
             let closed_ty = fold_pi(&param_types, ty_z);
             let id = fnv_hash(name.as_bytes());
-            env.insert_const(id, ConstDecl { ty: closed_ty.clone(), body: None });
-            st.globals.insert(name.clone(), (Term::Const(id), closed_ty.clone()));
-            Ok(DeclResult { name: name.clone(), kind: DeclKind::Axiom, ty: closed_ty })
+            env.insert_const(
+                id,
+                ConstDecl {
+                    ty: closed_ty.clone(),
+                    body: None,
+                },
+            );
+            st.globals
+                .insert(name.clone(), (Term::Const(id), closed_ty.clone()));
+            Ok(DeclResult {
+                name: name.clone(),
+                kind: DeclKind::Axiom,
+                ty: closed_ty,
+            })
         }
 
-        SurfaceDecl::Inductive { name, params, sort, ctors } => {
+        SurfaceDecl::Inductive {
+            name,
+            params,
+            sort,
+            ctors,
+        } => {
             // Convert to elab::ast::Decl::Inductive and delegate
-            let ast_ctors: Vec<(String, Box<Expr>)> = ctors.iter()
+            let ast_ctors: Vec<(String, Box<Expr>)> = ctors
+                .iter()
                 .map(|(n, e)| (n.clone(), Box::new(e.clone())))
                 .collect();
             let ast_decl = Decl::Inductive {
@@ -150,24 +201,37 @@ fn check_one_with_base(decl: &SurfaceDecl, st: &mut ElabState, env: &mut Env, ba
             };
             elab_decl(st, env, &ast_decl).map_err(CheckError::Elab)?;
             let (_ind_term, ind_ty) = st.globals[name].clone();
-            Ok(DeclResult { name: name.clone(), kind: DeclKind::Inductive, ty: ind_ty })
+            Ok(DeclResult {
+                name: name.clone(),
+                kind: DeclKind::Inductive,
+                ty: ind_ty,
+            })
         }
 
         SurfaceDecl::Import { path } => {
-            let dir = base_dir.ok_or_else(|| CheckError::ParseError(
-                format!("import \"{path}\" requires a file path context (use check_path)")
-            ))?;
+            let dir = base_dir.ok_or_else(|| {
+                CheckError::ParseError(format!(
+                    "import \"{path}\" requires a file path context (use check_path)"
+                ))
+            })?;
             let import_path = dir.join(path);
-            check_path(&import_path, st, env)
-                .map_err(|(_, e)| e)?;
-            Ok(DeclResult { name: format!("import \"{path}\""), kind: DeclKind::Def, ty: Term::Sort(0) })
+            check_path(&import_path, st, env).map_err(|(_, e)| e)?;
+            Ok(DeclResult {
+                name: format!("import \"{path}\""),
+                kind: DeclKind::Def,
+                ty: Term::Sort(0),
+            })
         }
 
         SurfaceDecl::CheckCmd(expr) => {
             // #check expr — elaborate and print type, don't add to env
             let (_term, ty) = elab_expr(st, env, expr).map_err(CheckError::Elab)?;
             let ty_z = st.mctx.zonk(&ty);
-            Ok(DeclResult { name: "#check".into(), kind: DeclKind::Def, ty: ty_z })
+            Ok(DeclResult {
+                name: "#check".into(),
+                kind: DeclKind::Def,
+                ty: ty_z,
+            })
         }
     }
 }
@@ -193,19 +257,27 @@ fn check_theorem(
             let proof_z = st.mctx.zonk(&term);
             let ctx = st.ctx();
             kernel::check(env, &ctx, &proof_z, &ty_z)?;
-            for _ in 0..n_params { st.pop(); }
+            for _ in 0..n_params {
+                st.pop();
+            }
             let closed_body = fold_lam(&param_types, proof_z);
-            let closed_ty   = fold_pi (&param_types, ty_z.clone());
-            st.globals.insert(name.to_string(), (closed_body, closed_ty.clone()));
-            Ok(DeclResult { name: name.to_string(), kind: DeclKind::Theorem, ty: closed_ty })
+            let closed_ty = fold_pi(&param_types, ty_z.clone());
+            st.globals
+                .insert(name.to_string(), (closed_body, closed_ty.clone()));
+            Ok(DeclResult {
+                name: name.to_string(),
+                kind: DeclKind::Theorem,
+                ty: closed_ty,
+            })
         }
         Err(RunError::Sorry(msg)) => {
-            for _ in 0..n_params { st.pop(); }
+            for _ in 0..n_params {
+                st.pop();
+            }
             Err(CheckError::Sorry(msg))
         }
         Err(e) => Err(CheckError::from(e)),
     }
-
 }
 
 fn elab_def_term(
@@ -219,20 +291,33 @@ fn elab_def_term(
     let param_types = push_params(st, env, params).map_err(CheckError::Elab)?;
     let n_params = st.locals.len() - n_before;
 
-    let (ty_term, _)   = elab_expr(st, env, ty_expr).map_err(CheckError::Elab)?;
+    let (ty_term, _) = elab_expr(st, env, ty_expr).map_err(CheckError::Elab)?;
     let (body_term, _) = elab_expr(st, env, body_expr).map_err(CheckError::Elab)?;
 
     let ctx = st.ctx();
-    let ty_z   = st.mctx.zonk(&ty_term);
+    let ty_z = st.mctx.zonk(&ty_term);
     let body_z = st.mctx.zonk(&body_term);
 
     kernel::check(env, &ctx, &body_z, &ty_z)?;
 
-    for _ in 0..n_params { st.pop(); }
+    for _ in 0..n_params {
+        st.pop();
+    }
     let closed_body = fold_lam(&param_types, body_z);
-    let closed_ty   = fold_pi (&param_types, ty_z);
+    let closed_ty = fold_pi(&param_types, ty_z);
 
     Ok((closed_ty, closed_body))
+}
+
+fn decl_name(d: &SurfaceDecl) -> Option<&str> {
+    match d {
+        SurfaceDecl::Def { name, .. } => Some(name),
+        SurfaceDecl::Theorem { name, .. } => Some(name),
+        SurfaceDecl::Axiom { name, .. } => Some(name),
+        SurfaceDecl::Inductive { name, .. } => Some(name),
+        SurfaceDecl::Import { path } => Some(path),
+        SurfaceDecl::CheckCmd(_) => None,
+    }
 }
 
 #[cfg(test)]
@@ -240,12 +325,12 @@ mod tests {
     use crate::{
         elab::core::ElabState,
         stdlib::std_env,
-        surface::{lex, parse_file, check_file},
+        surface::{check_file, lex, parse_file},
     };
 
     fn run(src: &str) -> Result<Vec<super::DeclResult>, String> {
         let mut env = std_env();
-        let mut st  = ElabState::new();
+        let mut st = ElabState::new();
         st.add_stdlib();
         let toks = lex(src).map_err(|e| format!("lex: {e:?}"))?;
         let decls = parse_file(&toks).map_err(|e| format!("parse: {e:?}"))?;
@@ -299,10 +384,11 @@ mod tests {
     #[test]
     fn proof_file_sizing() {
         let path = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"), "/../../prysm/proofs/Sizing.ei"
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../prysm/proofs/Sizing.ei"
         ));
         let mut env = crate::stdlib::std_env();
-        let mut st  = ElabState::new();
+        let mut st = ElabState::new();
         st.add_stdlib();
         super::check_path(path, &mut st, &mut env)
             .map_err(|(n, e)| format!("{n}: {e}"))
@@ -336,10 +422,11 @@ mod tests {
     #[test]
     fn proof_file_t3() {
         let path = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"), "/../../nox/proofs/T3.ei"
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../nox/proofs/T3.ei"
         ));
         let mut env = crate::stdlib::std_env();
-        let mut st  = ElabState::new();
+        let mut st = ElabState::new();
         st.add_stdlib();
         super::check_path(path, &mut st, &mut env)
             .map_err(|(n, e)| format!("{n}: {e}"))
@@ -349,10 +436,11 @@ mod tests {
     #[test]
     fn proof_file_t1() {
         let path = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"), "/../../nox/proofs/T1.ei"
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../nox/proofs/T1.ei"
         ));
         let mut env = crate::stdlib::std_env();
-        let mut st  = ElabState::new();
+        let mut st = ElabState::new();
         st.add_stdlib();
         super::check_path(path, &mut st, &mut env)
             .map_err(|(n, e)| format!("{n}: {e}"))
@@ -362,24 +450,14 @@ mod tests {
     #[test]
     fn proof_file_multimodal() {
         let path = std::path::Path::new(concat!(
-            env!("CARGO_MANIFEST_DIR"), "/../../prysm/proofs/Multimodal.ei"
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../prysm/proofs/Multimodal.ei"
         ));
         let mut env = crate::stdlib::std_env();
-        let mut st  = ElabState::new();
+        let mut st = ElabState::new();
         st.add_stdlib();
         super::check_path(path, &mut st, &mut env)
             .map_err(|(n, e)| format!("{n}: {e}"))
             .expect("Multimodal.ei should check");
-    }
-}
-
-fn decl_name(d: &SurfaceDecl) -> Option<&str> {
-    match d {
-        SurfaceDecl::Def      { name, .. } => Some(name),
-        SurfaceDecl::Theorem  { name, .. } => Some(name),
-        SurfaceDecl::Axiom    { name, .. } => Some(name),
-        SurfaceDecl::Inductive{ name, .. } => Some(name),
-        SurfaceDecl::Import   { path }     => Some(path),
-        SurfaceDecl::CheckCmd(_)           => None,
     }
 }

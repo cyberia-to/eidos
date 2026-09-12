@@ -1,18 +1,18 @@
 // eidos CLI
 // spec: specs/interaction.md § query commands
 
-mod pretty;
 mod parser;
+mod pretty;
 mod repl;
 
-use std::io::IsTerminal;
-use std::{env, fs, process};
 use cyber_eidos::{
-    elab::{ElabState, elab_expr},
+    elab::{elab_expr, ElabState},
     reduce::nf,
     stdlib::std_env,
     surface::{check_file, check_strict_path, lex, parse_file, DeclKind},
 };
+use std::io::IsTerminal;
+use std::{env, fs, process};
 
 // ── style ────────────────────────────────────────────────────────────────────
 // ANSI only when stdout is a terminal — piped output stays clean.
@@ -21,7 +21,11 @@ fn tty() -> bool {
     std::io::stdout().is_terminal()
 }
 fn paint(code: &str, s: &str) -> String {
-    if tty() { format!("\x1b[{code}m{s}\x1b[0m") } else { s.to_string() }
+    if tty() {
+        format!("\x1b[{code}m{s}\x1b[0m")
+    } else {
+        s.to_string()
+    }
 }
 fn dim(s: &str) -> String {
     paint("90", s)
@@ -61,11 +65,9 @@ pub fn banner() -> String {
     format!(
         "{LOGO}\n{tag}\n{params}\n",
         tag = paint("37", "    the form of truth"),
-        params = dim(
-            "\n    Calculus of Inductive Constructions\n    \
+        params = dim("\n    Calculus of Inductive Constructions\n    \
              proofs are programs · types are propositions\n    \
-             Π · inductives · universes · kernel-checked\n"
-        ),
+             Π · inductives · universes · kernel-checked\n"),
     )
 }
 
@@ -73,15 +75,25 @@ fn help_lines() -> String {
     let rows = [
         ("repl", "interactive proof assistant"),
         ("eval <expr>", "reduce to normal form, show its type"),
-        ("check <file.ei>", "elaborate + kernel-check all declarations"),
-        ("check --strict <file.ei>", "recheck Nat/Bool/Eq/Pos/BNat proofs and imports without admissions"),
+        (
+            "check <file.ei>",
+            "elaborate + kernel-check all declarations",
+        ),
+        (
+            "check --strict <file.ei>",
+            "recheck Nat/Bool/Eq/Pos/BNat proofs and imports without admissions",
+        ),
         ("search <type>", "query cybergraph for existing proofs"),
         ("verify <axon>", "fetch and verify a proof certificate"),
     ];
     let w = rows.iter().map(|(c, _)| c.len()).max().unwrap_or(0);
     let mut s = format!("{}\n", dim("commands"));
     for (cmd, desc) in rows {
-        s.push_str(&format!("  {}   {}\n", bold(&format!("{cmd:<w$}")), dim(desc)));
+        s.push_str(&format!(
+            "  {}   {}\n",
+            bold(&format!("{cmd:<w$}")),
+            dim(desc)
+        ));
     }
     s
 }
@@ -136,7 +148,12 @@ fn cmd_eval(args: &[String]) {
             let ctx = vec![];
             let term_nf = nf(&env, &ctx, term);
             let ty_nf = nf(&env, &ctx, st.mctx.zonk(&ty));
-            println!("  {} {} {}", green(&pretty::pp(&term_nf)), dim(":"), cyan(&pretty::pp(&ty_nf)));
+            println!(
+                "  {} {} {}",
+                green(&pretty::pp(&term_nf)),
+                dim(":"),
+                cyan(&pretty::pp(&ty_nf))
+            );
         }
         Err(e) => die("elaboration error", format!("{e:?}")),
     }
@@ -146,7 +163,9 @@ fn cmd_eval(args: &[String]) {
 
 fn cmd_check(args: &[String]) {
     if args.first().map(String::as_str) == Some("--strict") {
-        if args.len() != 2 { die("check", "usage: eidos check --strict <file.ei>"); }
+        if args.len() != 2 {
+            die("check", "usage: eidos check --strict <file.ei>");
+        }
         let module = check_strict_path(std::path::Path::new(&args[1]))
             .unwrap_or_else(|e| die("strict check", e));
         let mut theorems = 0;
@@ -188,13 +207,31 @@ fn cmd_check(args: &[String]) {
                 let ty = dim(&pretty::pp(&r.ty));
                 match r.kind {
                     DeclKind::Def => {
-                        println!("  {} {} {} {}", dim("def      "), bold(&r.name), dim(":"), ty)
+                        println!(
+                            "  {} {} {} {}",
+                            dim("def      "),
+                            bold(&r.name),
+                            dim(":"),
+                            ty
+                        )
                     }
                     DeclKind::Theorem => {
-                        println!("  {} {} {} {}", green("proved   "), bold(&r.name), dim(":"), ty)
+                        println!(
+                            "  {} {} {} {}",
+                            green("proved   "),
+                            bold(&r.name),
+                            dim(":"),
+                            ty
+                        )
                     }
                     DeclKind::Axiom => {
-                        println!("  {} {} {} {}", yellow("axiom    "), bold(&r.name), dim(":"), ty)
+                        println!(
+                            "  {} {} {} {}",
+                            yellow("axiom    "),
+                            bold(&r.name),
+                            dim(":"),
+                            ty
+                        )
                     }
                     DeclKind::Inductive => {
                         println!("  {} {}", magenta("inductive"), bold(&r.name))
@@ -217,7 +254,11 @@ fn cmd_search(args: &[String]) {
     let Some(ty_str) = args.first() else {
         die("search", "missing type — usage: eidos search <type>");
     };
-    eprintln!("  {} {ty_str} {}", dim("search"), dim("(cybergraph query not yet implemented)"));
+    eprintln!(
+        "  {} {ty_str} {}",
+        dim("search"),
+        dim("(cybergraph query not yet implemented)")
+    );
     process::exit(1)
 }
 
@@ -227,6 +268,10 @@ fn cmd_verify(args: &[String]) {
     let Some(axon) = args.first() else {
         die("verify", "missing axon — usage: eidos verify <axon-hash>");
     };
-    eprintln!("  {} {axon} {}", dim("verify"), dim("(zheng verifier not yet implemented)"));
+    eprintln!(
+        "  {} {axon} {}",
+        dim("verify"),
+        dim("(zheng verifier not yet implemented)")
+    );
     process::exit(1)
 }

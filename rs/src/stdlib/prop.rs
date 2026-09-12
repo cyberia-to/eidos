@@ -1,17 +1,23 @@
 // stdlib/prop.rs — False, True, And, Or, Eq, Fin inductives and proof helpers
-use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
 use super::nat::{nat, nat_next};
+use crate::{
+    env::{Env, IndDesc},
+    term::Term,
+};
 
 // ── False ────────────────────────────────────────────────────────────────────
 
 pub fn declare_false(env: &mut Env) {
-    env.insert(FALSE_ID, IndDesc {
-        arity: 0,
-        sort: 0,
-        param_tel: Term::Sort(0),
-        constructors: vec![],
-    });
+    env.insert(
+        FALSE_ID,
+        IndDesc {
+            arity: 0,
+            sort: 0,
+            param_tel: Term::Sort(0),
+            constructors: vec![],
+        },
+    );
 }
 
 /// false_elim P h — given h : False, produce element of P.
@@ -27,12 +33,15 @@ pub fn false_elim(p: Term, h: Term) -> Term {
 
 pub fn declare_true(env: &mut Env) {
     let t = Term::Ind(TRUE_ID, vec![]);
-    env.insert(TRUE_ID, IndDesc {
-        arity: 0,
-        sort: 0,
-        param_tel: Term::Sort(0),
-        constructors: vec![t],
-    });
+    env.insert(
+        TRUE_ID,
+        IndDesc {
+            arity: 0,
+            sort: 0,
+            param_tel: Term::Sort(0),
+            constructors: vec![t],
+        },
+    );
 }
 
 // ── And ──────────────────────────────────────────────────────────────────────
@@ -52,7 +61,15 @@ pub fn declare_and(env: &mut Env) {
         Box::new(Term::Sort(0)),
         Box::new(Term::Pi(Box::new(Term::Sort(0)), Box::new(Term::Sort(0)))),
     );
-    env.insert(id, IndDesc { arity: 2, sort: 0, param_tel, constructors: vec![intro_tel] });
+    env.insert(
+        id,
+        IndDesc {
+            arity: 2,
+            sort: 0,
+            param_tel,
+            constructors: vec![intro_tel],
+        },
+    );
 }
 
 pub fn and_intro(p_ty: Term, q_ty: Term, p: Term, q: Term) -> Term {
@@ -107,7 +124,15 @@ pub fn declare_or(env: &mut Env) {
         Box::new(Term::Sort(0)),
         Box::new(Term::Pi(Box::new(Term::Sort(0)), Box::new(Term::Sort(0)))),
     );
-    env.insert(id, IndDesc { arity: 2, sort: 0, param_tel, constructors: vec![left_tel, right_tel] });
+    env.insert(
+        id,
+        IndDesc {
+            arity: 2,
+            sort: 0,
+            param_tel,
+            constructors: vec![left_tel, right_tel],
+        },
+    );
 }
 
 // ── Eq ───────────────────────────────────────────────────────────────────────
@@ -123,7 +148,15 @@ pub fn declare_eq(env: &mut Env) {
             Box::new(Term::Pi(Box::new(Term::Var(1)), Box::new(Term::Sort(0)))),
         )),
     );
-    env.insert(id, IndDesc { arity: 3, sort: 0, param_tel, constructors: vec![refl_tel] });
+    env.insert(
+        id,
+        IndDesc {
+            arity: 3,
+            sort: 0,
+            param_tel,
+            constructors: vec![refl_tel],
+        },
+    );
 }
 
 /// eq_refl A a — proof of Eq A a a.
@@ -133,9 +166,15 @@ pub fn eq_refl(a_ty: Term, a: Term) -> Term {
 
 // ── Fin ──────────────────────────────────────────────────────────────────────
 
-pub fn fin(n: Term)                -> Term { Term::Ind(FIN_ID, vec![n]) }
-pub fn fin_zero(n: Term)           -> Term { Term::Ctor(FIN_ID, FIN_ZERO_IDX, vec![n]) }
-pub fn fin_next(n: Term, i: Term)  -> Term { Term::Ctor(FIN_ID, FIN_NEXT_IDX, vec![n, i]) }
+pub fn fin(n: Term) -> Term {
+    Term::Ind(FIN_ID, vec![n])
+}
+pub fn fin_zero(n: Term) -> Term {
+    Term::Ctor(FIN_ID, FIN_ZERO_IDX, vec![n])
+}
+pub fn fin_next(n: Term, i: Term) -> Term {
+    Term::Ctor(FIN_ID, FIN_NEXT_IDX, vec![n, i])
+}
 
 pub fn declare_fin(env: &mut Env) {
     let id = FIN_ID;
@@ -151,10 +190,13 @@ pub fn declare_fin(env: &mut Env) {
         )),
     );
     let param_tel = Term::Pi(Box::new(Term::Sort(1)), Box::new(Term::Sort(0)));
-    env.insert(id, IndDesc {
-        arity: 1,
-        sort: 1,
-        param_tel,
-        constructors: vec![zero_tel, next_tel],
-    });
+    env.insert(
+        id,
+        IndDesc {
+            arity: 1,
+            sort: 1,
+            param_tel,
+            constructors: vec![zero_tel, next_tel],
+        },
+    );
 }

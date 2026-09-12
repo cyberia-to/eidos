@@ -3,17 +3,17 @@
 // Bugs here produce terms the kernel rejects — they cannot forge proofs.
 
 pub mod ast;
-pub mod meta;
 pub mod core;
 pub mod decl;
+pub mod meta;
 
-pub use meta::ElabError;
-pub use core::{ElabState, elab_expr};
+pub use core::{elab_expr, ElabState};
 pub use decl::elab_decl;
+pub use meta::ElabError;
 
 #[cfg(test)]
 mod tests {
-    use super::{ast::*, core::*, elab_expr, elab_decl, ElabError};
+    use super::{ast::*, core::*, elab_decl, elab_expr, ElabError};
     use crate::stdlib::std_env;
 
     fn st() -> ElabState {
@@ -27,7 +27,7 @@ mod tests {
         let mut st = st();
         let env = std_env();
         let (t, ty) = elab_expr(&mut st, &env, &Expr::Sort(None)).unwrap();
-        assert_eq!(t,  crate::term::Term::Sort(0));
+        assert_eq!(t, crate::term::Term::Sort(0));
         assert_eq!(ty, crate::term::Term::Sort(1));
     }
 
@@ -36,7 +36,7 @@ mod tests {
         let mut st = st();
         let env = std_env();
         let (t, ty) = elab_expr(&mut st, &env, &Expr::Sort(Some(0))).unwrap();
-        assert_eq!(t,  crate::term::Term::Sort(1));
+        assert_eq!(t, crate::term::Term::Sort(1));
         assert_eq!(ty, crate::term::Term::Sort(2));
     }
 
@@ -45,7 +45,7 @@ mod tests {
         let mut st = st();
         let env = std_env();
         let (t, ty) = elab_expr(&mut st, &env, &Expr::Name("Nat".into())).unwrap();
-        assert_eq!(t,  crate::stdlib::nat());
+        assert_eq!(t, crate::stdlib::nat());
         assert_eq!(ty, crate::term::Term::Sort(1));
     }
 
@@ -54,7 +54,7 @@ mod tests {
         let mut st = st();
         let env = std_env();
         let (t, ty) = elab_expr(&mut st, &env, &Expr::NatLit(3)).unwrap();
-        assert_eq!(t,  crate::stdlib::nat_lit(3));
+        assert_eq!(t, crate::stdlib::nat_lit(3));
         assert_eq!(ty, crate::stdlib::nat());
     }
 
@@ -121,7 +121,7 @@ mod tests {
         let env = std_env();
         let (t, ty) = elab_expr(&mut st, &env, &Expr::Hole).unwrap();
         // both should be Meta terms
-        assert!(matches!(t,  crate::term::Term::Meta(_)));
+        assert!(matches!(t, crate::term::Term::Meta(_)));
         assert!(matches!(ty, crate::term::Term::Meta(_)));
     }
 
@@ -132,8 +132,11 @@ mod tests {
         let mut env = std_env();
         let decl = Decl::Def {
             name: "id".into(),
-            params: vec![Binder::Explicit("n".into(), Box::new(Expr::Name("Nat".into())))],
-            ty:   Box::new(Expr::Name("Nat".into())),
+            params: vec![Binder::Explicit(
+                "n".into(),
+                Box::new(Expr::Name("Nat".into())),
+            )],
+            ty: Box::new(Expr::Name("Nat".into())),
             body: Box::new(Expr::Name("n".into())),
         };
         elab_decl(&mut st, &mut env, &decl).unwrap();

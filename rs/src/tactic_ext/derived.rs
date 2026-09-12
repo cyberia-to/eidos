@@ -1,12 +1,12 @@
 // tactic_ext/derived.rs — contradiction, constructor, left, right, trivial, repeat, seq
+use super::apply::tac_apply;
+use crate::tactic::{ProofState, TacticError};
 use crate::{
     reduce::whnf,
     stdlib::{FALSE_ID, TRUE_ID},
     subst::shift,
     term::Term,
 };
-use crate::tactic::{ProofState, TacticError};
-use super::apply::tac_apply;
 
 /// contradiction — find h : False in local ctx and close via False.elim.
 pub fn tac_contradiction(state: &mut ProofState) -> Result<(), TacticError> {
@@ -45,18 +45,21 @@ pub fn tac_constructor(state: &mut ProofState) -> Result<(), TacticError> {
     let expected = whnf(env, &ctx, goal.expected.clone());
     match expected {
         Term::Ind(id, params) => {
-            let desc = env.lookup(id)
+            let desc = env
+                .lookup(id)
                 .ok_or_else(|| TacticError::TacticFailed("constructor: unknown inductive".into()))?
                 .clone();
             if desc.constructors.is_empty() {
-                return Err(TacticError::TacticFailed("constructor: no constructors".into()));
+                return Err(TacticError::TacticFailed(
+                    "constructor: no constructors".into(),
+                ));
             }
             let ctor = Term::Ctor(id, 0, params.clone());
             crate::tactic::tac_exact(state, ctor)
         }
-        other => Err(TacticError::TacticFailed(
-            format!("constructor: goal is not an inductive: {other:?}")
-        )),
+        other => Err(TacticError::TacticFailed(format!(
+            "constructor: goal is not an inductive: {other:?}"
+        ))),
     }
 }
 
@@ -84,11 +87,15 @@ pub fn tac_right(state: &mut ProofState) -> Result<(), TacticError> {
 
 /// trivial — try rfl, then assumption, then True.intro.
 pub fn tac_trivial(state: &mut ProofState) -> Result<(), TacticError> {
-    use crate::tactic::{tac_rfl, tac_assumption, tac_exact};
+    use crate::tactic::{tac_assumption, tac_exact, tac_rfl};
     let saved = state.clone();
-    if tac_rfl(state).is_ok()        { return Ok(()); }
+    if tac_rfl(state).is_ok() {
+        return Ok(());
+    }
     *state = saved.clone();
-    if tac_assumption(state).is_ok() { return Ok(()); }
+    if tac_assumption(state).is_ok() {
+        return Ok(());
+    }
     *state = saved;
     tac_exact(state, Term::Ctor(TRUE_ID, 0, vec![]))
 }
@@ -102,7 +109,10 @@ where
         let saved = state.clone();
         match tac(state) {
             Ok(()) => {}
-            Err(_) => { *state = saved; return Ok(()); }
+            Err(_) => {
+                *state = saved;
+                return Ok(());
+            }
         }
     }
 }
@@ -120,7 +130,10 @@ where
     for _ in 0..n_new {
         match t2(state) {
             Ok(()) => {}
-            Err(e) => { *state = saved; return Err(e); }
+            Err(e) => {
+                *state = saved;
+                return Err(e);
+            }
         }
     }
     Ok(())

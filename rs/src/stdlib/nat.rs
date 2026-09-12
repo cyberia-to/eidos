@@ -1,17 +1,28 @@
 // stdlib/nat.rs — Nat inductive type, constructors, arithmetic functions
-use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
+use crate::{
+    env::{Env, IndDesc},
+    term::Term,
+};
 
 // ── Constructors ──────────────────────────────────────────────────────────────
 
-pub fn nat() -> Term { Term::Ind(NAT_ID, vec![]) }
+pub fn nat() -> Term {
+    Term::Ind(NAT_ID, vec![])
+}
 
-pub fn nat_zero()        -> Term { Term::Ctor(NAT_ID, NAT_ZERO, vec![]) }
-pub fn nat_next(n: Term) -> Term { Term::Ctor(NAT_ID, NAT_NEXT, vec![n]) }
+pub fn nat_zero() -> Term {
+    Term::Ctor(NAT_ID, NAT_ZERO, vec![])
+}
+pub fn nat_next(n: Term) -> Term {
+    Term::Ctor(NAT_ID, NAT_NEXT, vec![n])
+}
 
 pub fn nat_lit(n: u64) -> Term {
     let mut t = nat_zero();
-    for _ in 0..n { t = nat_next(t); }
+    for _ in 0..n {
+        t = nat_next(t);
+    }
     t
 }
 
@@ -19,15 +30,18 @@ pub fn nat_lit(n: u64) -> Term {
 
 pub fn declare_nat(env: &mut Env) {
     let n = nat();
-    env.insert(NAT_ID, IndDesc {
-        arity: 0,
-        sort: 1,
-        param_tel: Term::Sort(0),
-        constructors: vec![
-            n.clone(),
-            Term::Pi(Box::new(n.clone()), Box::new(n.clone())),
-        ],
-    });
+    env.insert(
+        NAT_ID,
+        IndDesc {
+            arity: 0,
+            sort: 1,
+            param_tel: Term::Sort(0),
+            constructors: vec![
+                n.clone(),
+                Term::Pi(Box::new(n.clone()), Box::new(n.clone())),
+            ],
+        },
+    );
 }
 
 // ── Arithmetic ────────────────────────────────────────────────────────────────
@@ -39,10 +53,10 @@ pub fn nat_add(n: Term, m: Term) -> Term {
         Box::new(Term::Lam(Box::new(nat()), Box::new(nat()))),
         vec![
             m,
-            Term::Lam(Box::new(nat()), Box::new(Term::Lam(
+            Term::Lam(
                 Box::new(nat()),
-                Box::new(nat_next(Term::Var(0))),
-            ))),
+                Box::new(Term::Lam(Box::new(nat()), Box::new(nat_next(Term::Var(0))))),
+            ),
         ],
         Box::new(n),
     )
@@ -56,10 +70,13 @@ pub fn nat_mul(n: Term, m: Term) -> Term {
         Box::new(Term::Lam(Box::new(nat()), Box::new(nat()))),
         vec![
             nat_zero(),
-            Term::Lam(Box::new(nat()), Box::new(Term::Lam(
+            Term::Lam(
                 Box::new(nat()),
-                Box::new(nat_add(m_shifted, Term::Var(0))),
-            ))),
+                Box::new(Term::Lam(
+                    Box::new(nat()),
+                    Box::new(nat_add(m_shifted, Term::Var(0))),
+                )),
+            ),
         ],
         Box::new(n),
     )
@@ -67,27 +84,36 @@ pub fn nat_mul(n: Term, m: Term) -> Term {
 
 /// nat_le n m — n ≤ m as a Bool.
 pub fn nat_le(n: Term, m: Term) -> Term {
-    use super::bool::{bool_ty, bool_false, bool_true};
+    use super::bool::{bool_false, bool_true, bool_ty};
     Term::Elim(
         NAT_ID,
         Box::new(Term::Lam(Box::new(nat()), Box::new(bool_ty()))),
         vec![
             Term::Lam(Box::new(nat()), Box::new(bool_true())),
-            Term::Lam(Box::new(nat()), Box::new(Term::Lam(
-                Box::new(Term::Pi(Box::new(nat()), Box::new(bool_ty()))),
-                Box::new(Term::Elim(
-                    NAT_ID,
-                    Box::new(Term::Lam(Box::new(nat()), Box::new(bool_ty()))),
-                    vec![
-                        bool_false(),
-                        Term::Lam(Box::new(nat()), Box::new(Term::Lam(
-                            Box::new(bool_ty()),
-                            Box::new(Term::App(Box::new(Term::Var(3)), Box::new(Term::Var(1)))),
-                        ))),
-                    ],
-                    Box::new(m.clone()),
+            Term::Lam(
+                Box::new(nat()),
+                Box::new(Term::Lam(
+                    Box::new(Term::Pi(Box::new(nat()), Box::new(bool_ty()))),
+                    Box::new(Term::Elim(
+                        NAT_ID,
+                        Box::new(Term::Lam(Box::new(nat()), Box::new(bool_ty()))),
+                        vec![
+                            bool_false(),
+                            Term::Lam(
+                                Box::new(nat()),
+                                Box::new(Term::Lam(
+                                    Box::new(bool_ty()),
+                                    Box::new(Term::App(
+                                        Box::new(Term::Var(3)),
+                                        Box::new(Term::Var(1)),
+                                    )),
+                                )),
+                            ),
+                        ],
+                        Box::new(m.clone()),
+                    )),
                 )),
-            ))),
+            ),
         ],
         Box::new(n),
     )
@@ -102,10 +128,13 @@ pub fn nat_sub(n: Term, m: Term) -> Term {
         Box::new(Term::Lam(Box::new(nat()), Box::new(nat()))),
         vec![
             nat_zero(),
-            Term::Lam(Box::new(nat()), Box::new(Term::Lam(
+            Term::Lam(
                 Box::new(nat()),
-                Box::new(Term::Var(1)), // k'
-            ))),
+                Box::new(Term::Lam(
+                    Box::new(nat()),
+                    Box::new(Term::Var(1)), // k'
+                )),
+            ),
         ],
         Box::new(Term::Var(0)), // ih (accumulated result)
     );
@@ -114,10 +143,13 @@ pub fn nat_sub(n: Term, m: Term) -> Term {
         Box::new(Term::Lam(Box::new(nat()), Box::new(nat()))),
         vec![
             n,
-            Term::Lam(Box::new(nat()), Box::new(Term::Lam(
-                Box::new(nat()), // ih = n - m'
-                Box::new(pred_of_ih),
-            ))),
+            Term::Lam(
+                Box::new(nat()),
+                Box::new(Term::Lam(
+                    Box::new(nat()), // ih = n - m'
+                    Box::new(pred_of_ih),
+                )),
+            ),
         ],
         Box::new(m),
     )

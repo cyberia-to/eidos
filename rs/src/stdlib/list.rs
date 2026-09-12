@@ -1,8 +1,13 @@
 // stdlib/list.rs — List inductive type
-use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
+use crate::{
+    env::{Env, IndDesc},
+    term::Term,
+};
 
-pub fn list(a: Term) -> Term { Term::Ind(LIST_ID, vec![a]) }
+pub fn list(a: Term) -> Term {
+    Term::Ind(LIST_ID, vec![a])
+}
 
 pub fn list_nil(a: Term) -> Term {
     Term::Ctor(LIST_ID, LIST_NIL_IDX, vec![a])
@@ -17,7 +22,7 @@ pub fn declare_list(env: &mut Env) {
     let id = LIST_ID;
     let a = Term::Var(0);
 
-    let nil_tel  = Term::Ind(id, vec![a.clone()]);
+    let nil_tel = Term::Ind(id, vec![a.clone()]);
     let link_tel = Term::Pi(
         Box::new(a.clone()),
         Box::new(Term::Pi(
@@ -27,10 +32,13 @@ pub fn declare_list(env: &mut Env) {
     );
     let param_tel = Term::Pi(Box::new(Term::Sort(1)), Box::new(Term::Sort(0)));
 
-    env.insert(id, IndDesc {
-        arity: 1,
-        sort: 1,
-        param_tel,
-        constructors: vec![nil_tel, link_tel],
-    });
+    env.insert(
+        id,
+        IndDesc {
+            arity: 1,
+            sort: 1,
+            param_tel,
+            constructors: vec![nil_tel, link_tel],
+        },
+    );
 }

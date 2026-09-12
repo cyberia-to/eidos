@@ -1,11 +1,11 @@
 // tactic_ext/apply.rs — tac_apply
+use crate::tactic::{MetaEnv, ProofState, TacticError};
 use crate::{
     env::Env,
     kernel::infer,
     reduce::{def_eq, whnf},
     term::Term,
 };
-use crate::tactic::{MetaEnv, ProofState, TacticError};
 
 /// apply e: unify the conclusion of e's type with the goal; generate premise subgoals.
 pub fn tac_apply(state: &mut ProofState, term: Term) -> Result<(), TacticError> {
@@ -21,7 +21,9 @@ pub fn tac_apply(state: &mut ProofState, term: Term) -> Result<(), TacticError> 
     state.metas.next += arg_metas.len() as u64;
 
     if !def_eq(env, &ctx, &concl, &expected) {
-        return Err(TacticError::TacticFailed("apply: conclusion does not match goal".into()));
+        return Err(TacticError::TacticFailed(
+            "apply: conclusion does not match goal".into(),
+        ));
     }
 
     let mut result = term;
@@ -32,7 +34,7 @@ pub fn tac_apply(state: &mut ProofState, term: Term) -> Result<(), TacticError> 
     state.goals.remove(0);
 
     let mut new_goals = Vec::new();
-    for (mid, arg_ty) in arg_metas.into_iter().zip(arg_tys.into_iter()) {
+    for (mid, arg_ty) in arg_metas.into_iter().zip(arg_tys) {
         if state.metas.lookup(mid).is_none() {
             new_goals.push(crate::tactic::Goal {
                 local_ctx: ctx.clone(),
@@ -49,11 +51,14 @@ pub fn tac_apply(state: &mut ProofState, term: Term) -> Result<(), TacticError> 
     Ok(())
 }
 
-pub(super) fn peel_pi_metas(menv: &MetaEnv, env: &Env, ctx: &crate::ctx::Ctx, mut ty: Term)
-    -> (Vec<u64>, Vec<Term>, Term)
-{
-    let mut meta_ids  = Vec::new();
-    let mut meta_tys  = Vec::new();
+pub(super) fn peel_pi_metas(
+    menv: &MetaEnv,
+    env: &Env,
+    ctx: &crate::ctx::Ctx,
+    mut ty: Term,
+) -> (Vec<u64>, Vec<Term>, Term) {
+    let mut meta_ids = Vec::new();
+    let mut meta_tys = Vec::new();
     let mut next_id = menv.next;
     loop {
         match whnf(env, ctx, ty) {

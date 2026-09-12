@@ -28,9 +28,17 @@ fn tokenize(s: &str) -> Vec<Tok> {
     let mut chars = s.chars().peekable();
     while let Some(&c) = chars.peek() {
         match c {
-            ' ' | '\t' | '\n' | '\r' => { chars.next(); }
-            '(' => { chars.next(); toks.push(Tok::LParen); }
-            ')' => { chars.next(); toks.push(Tok::RParen); }
+            ' ' | '\t' | '\n' | '\r' => {
+                chars.next();
+            }
+            '(' => {
+                chars.next();
+                toks.push(Tok::LParen);
+            }
+            ')' => {
+                chars.next();
+                toks.push(Tok::RParen);
+            }
             '0'..='9' => {
                 let mut n = 0u64;
                 while let Some(&d @ '0'..='9') = chars.peek() {
@@ -51,7 +59,9 @@ fn tokenize(s: &str) -> Vec<Tok> {
                 }
                 toks.push(Tok::Ident(name));
             }
-            _ => { chars.next(); }
+            _ => {
+                chars.next();
+            }
         }
     }
     toks
@@ -62,7 +72,7 @@ fn tokenize(s: &str) -> Vec<Tok> {
 //   app  ::= atom atom*
 //   atom ::= NAT | IDENT | '(' app ')'
 
-fn parse_atom<'a>(toks: &'a [Tok]) -> Result<(Expr, &'a [Tok]), String> {
+fn parse_atom(toks: &[Tok]) -> Result<(Expr, &[Tok]), String> {
     match toks.first() {
         Some(Tok::Nat(n)) => Ok((Expr::NatLit(*n), &toks[1..])),
 
@@ -70,8 +80,8 @@ fn parse_atom<'a>(toks: &'a [Tok]) -> Result<(Expr, &'a [Tok]), String> {
             let expr = match s.as_str() {
                 "Prop" => Expr::Sort(None),
                 "Type" => Expr::Sort(Some(0)),
-                "_"    => Expr::Hole,
-                _      => Expr::Name(s.clone()),
+                "_" => Expr::Hole,
+                _ => Expr::Name(s.clone()),
             };
             Ok((expr, &toks[1..]))
         }
@@ -80,8 +90,8 @@ fn parse_atom<'a>(toks: &'a [Tok]) -> Result<(Expr, &'a [Tok]), String> {
             let (e, rest) = parse_app(&toks[1..])?;
             match rest.first() {
                 Some(Tok::RParen) => Ok((e, &rest[1..])),
-                Some(t)  => Err(format!("expected ')' but got {:?}", t)),
-                None     => Err("expected ')' but reached end of input".into()),
+                Some(t) => Err(format!("expected ')' but got {:?}", t)),
+                None => Err("expected ')' but reached end of input".into()),
             }
         }
 
@@ -90,17 +100,12 @@ fn parse_atom<'a>(toks: &'a [Tok]) -> Result<(Expr, &'a [Tok]), String> {
     }
 }
 
-fn parse_app<'a>(toks: &'a [Tok]) -> Result<(Expr, &'a [Tok]), String> {
+fn parse_app(toks: &[Tok]) -> Result<(Expr, &[Tok]), String> {
     let (mut e, mut rest) = parse_atom(toks)?;
-    loop {
-        match rest.first() {
-            Some(Tok::Nat(_)) | Some(Tok::Ident(_)) | Some(Tok::LParen) => {
-                let (a, rest2) = parse_atom(rest)?;
-                e = Expr::App(Box::new(e), Box::new(a));
-                rest = rest2;
-            }
-            _ => break,
-        }
+    while let Some(Tok::Nat(_)) | Some(Tok::Ident(_)) | Some(Tok::LParen) = rest.first() {
+        let (a, rest2) = parse_atom(rest)?;
+        e = Expr::App(Box::new(e), Box::new(a));
+        rest = rest2;
     }
     Ok((e, rest))
 }

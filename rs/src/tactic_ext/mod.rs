@@ -2,31 +2,30 @@
 // spec: specs/tactics.md § core tactics + tactic library
 
 pub mod apply;
+pub mod arith;
+pub mod derived;
 pub mod elim;
 pub mod have;
 pub mod rewrite;
-pub mod arith;
-pub mod derived;
 
 pub use apply::tac_apply;
-pub use elim::{tac_induction, tac_cases};
+pub use arith::{tac_decide, tac_omega, tac_simp};
+pub use derived::{
+    tac_constructor, tac_contradiction, tac_left, tac_repeat, tac_right, tac_seq, tac_trivial,
+};
+pub use elim::{tac_cases, tac_induction};
 pub use have::{tac_have_exact, tac_have_goal};
 pub use rewrite::tac_rewrite;
-pub use arith::{tac_omega, tac_simp, tac_decide};
-pub use derived::{
-    tac_contradiction, tac_constructor, tac_left, tac_right, tac_trivial,
-    tac_repeat, tac_seq,
-};
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::ctx::CtxEntry;
     use crate::stdlib::{nat, nat_zero, std_env};
     use crate::tactic::ProofState;
     use crate::term::Term;
-    use super::*;
 
     #[test]
     fn apply_ctor_closes_nat_goal() {
@@ -65,7 +64,10 @@ mod tests {
         assert_eq!(ps.goals.len(), 2);
         let next_case_ty = &ps.goals[1].expected;
         if let Term::Pi(_, body) = next_case_ty {
-            assert!(!matches!(body.as_ref(), Term::Pi(_, _)), "IH binder not stripped");
+            assert!(
+                !matches!(body.as_ref(), Term::Pi(_, _)),
+                "IH binder not stripped"
+            );
         }
     }
 
@@ -79,7 +81,10 @@ mod tests {
         assert_eq!(ps.goals[1].local_ctx.len(), 1);
         crate::tactic::tac_exact(&mut ps, nat_zero()).unwrap();
         crate::tactic::tac_exact(&mut ps, Term::Var(0)).unwrap();
-        assert!(ps.verify(&nat()).is_ok(), "have_goal proof failed to verify");
+        assert!(
+            ps.verify(&nat()).is_ok(),
+            "have_goal proof failed to verify"
+        );
     }
 
     #[test]

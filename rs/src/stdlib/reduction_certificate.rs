@@ -1,6 +1,6 @@
 //! Concrete Euclidean-division witnesses checked by binary CIC arithmetic.
 //! Host division proposes a witness; it is never a kernel reduction rule.
-use super::{EQ_ID, binary_nat as b, bool_true, bool_ty, eq_refl, std_env};
+use super::{binary_nat as b, bool_true, bool_ty, eq_refl, std_env, EQ_ID};
 use crate::{kernel, term::Term};
 
 #[derive(Debug)]

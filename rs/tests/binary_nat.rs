@@ -73,12 +73,10 @@ fn strict_surface_checks_binary_nonnegative_arithmetic() {
         "theorem ok : Eq Bool (BNat.lt BNat.zero (BNat.positive Pos.one)) Bool.true := by { rfl }",
     )
     .unwrap();
-    assert!(
-        check_strict_source(
-            "theorem bad : Eq Bool (BNat.lt BNat.zero BNat.zero) Bool.true := by { rfl }"
-        )
-        .is_err()
-    );
+    assert!(check_strict_source(
+        "theorem bad : Eq Bool (BNat.lt BNat.zero BNat.zero) Bool.true := by { rfl }"
+    )
+    .is_err());
     assert!(check_strict_source("def BNat.mul (a b : BNat) : BNat := BNat.zero").is_err());
     for (a, c, less) in [
         (1u128 << 127, (1u128 << 127) - 1, false),

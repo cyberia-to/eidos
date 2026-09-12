@@ -31,8 +31,12 @@ pub enum Noun {
 }
 
 impl Noun {
-    pub fn atom(v: u64) -> Self { Noun::Atom(v) }
-    pub fn cell(a: Noun, b: Noun) -> Self { Noun::Cell(Box::new(a), Box::new(b)) }
+    pub fn atom(v: u64) -> Self {
+        Noun::Atom(v)
+    }
+    pub fn cell(a: Noun, b: Noun) -> Self {
+        Noun::Cell(Box::new(a), Box::new(b))
+    }
 
     /// Encode as bytes (little-endian for atoms, recursive for cells).
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -40,7 +44,9 @@ impl Noun {
             Noun::Atom(v) => {
                 let mut b = v.to_le_bytes().to_vec();
                 // trim trailing zero bytes (canonical)
-                while b.last() == Some(&0) && b.len() > 1 { b.pop(); }
+                while b.last() == Some(&0) && b.len() > 1 {
+                    b.pop();
+                }
                 b
             }
             Noun::Cell(a, b_n) => {
@@ -57,31 +63,58 @@ impl Noun {
 /// Encode a Term as a Noun for hashing.
 pub fn term_to_noun(t: &Term) -> Noun {
     match t {
-        Term::Var(i)       => Noun::cell(Noun::atom(0x00), Noun::atom(*i)),
-        Term::Sort(u)      => Noun::cell(Noun::atom(0x01), Noun::atom(*u)),
-        Term::Pi(a, b)     => Noun::cell(Noun::atom(0x02), Noun::cell(term_to_noun(a), term_to_noun(b))),
-        Term::Lam(a, t)    => Noun::cell(Noun::atom(0x03), Noun::cell(term_to_noun(a), term_to_noun(t))),
-        Term::App(f, a)    => Noun::cell(Noun::atom(0x04), Noun::cell(term_to_noun(f), term_to_noun(a))),
-        Term::Let(a, v, b) => Noun::cell(Noun::atom(0x05), Noun::cell(term_to_noun(a), Noun::cell(term_to_noun(v), term_to_noun(b)))),
-        Term::Ind(id, ps)  => Noun::cell(Noun::atom(0x06), Noun::cell(Noun::atom(*id), list_noun(ps))),
-        Term::Ctor(id,k,a) => Noun::cell(Noun::atom(0x07), Noun::cell(Noun::atom(*id), Noun::cell(Noun::atom(*k), list_noun(a)))),
-        Term::Elim(id,m,cs,tg) => Noun::cell(
+        Term::Var(i) => Noun::cell(Noun::atom(0x00), Noun::atom(*i)),
+        Term::Sort(u) => Noun::cell(Noun::atom(0x01), Noun::atom(*u)),
+        Term::Pi(a, b) => Noun::cell(
+            Noun::atom(0x02),
+            Noun::cell(term_to_noun(a), term_to_noun(b)),
+        ),
+        Term::Lam(a, t) => Noun::cell(
+            Noun::atom(0x03),
+            Noun::cell(term_to_noun(a), term_to_noun(t)),
+        ),
+        Term::App(f, a) => Noun::cell(
+            Noun::atom(0x04),
+            Noun::cell(term_to_noun(f), term_to_noun(a)),
+        ),
+        Term::Let(a, v, b) => Noun::cell(
+            Noun::atom(0x05),
+            Noun::cell(
+                term_to_noun(a),
+                Noun::cell(term_to_noun(v), term_to_noun(b)),
+            ),
+        ),
+        Term::Ind(id, ps) => {
+            Noun::cell(Noun::atom(0x06), Noun::cell(Noun::atom(*id), list_noun(ps)))
+        }
+        Term::Ctor(id, k, a) => Noun::cell(
+            Noun::atom(0x07),
+            Noun::cell(Noun::atom(*id), Noun::cell(Noun::atom(*k), list_noun(a))),
+        ),
+        Term::Elim(id, m, cs, tg) => Noun::cell(
             Noun::atom(0x08),
-            Noun::cell(Noun::atom(*id), Noun::cell(term_to_noun(m), Noun::cell(list_noun(cs), term_to_noun(tg)))),
+            Noun::cell(
+                Noun::atom(*id),
+                Noun::cell(term_to_noun(m), Noun::cell(list_noun(cs), term_to_noun(tg))),
+            ),
         ),
         Term::EqSubst(p, h, pf) => Noun::cell(
             Noun::atom(0x0A),
-            Noun::cell(term_to_noun(p), Noun::cell(term_to_noun(h), term_to_noun(pf))),
+            Noun::cell(
+                term_to_noun(p),
+                Noun::cell(term_to_noun(h), term_to_noun(pf)),
+            ),
         ),
-        Term::Const(id)    => Noun::cell(Noun::atom(0x0B), Noun::atom(*id)),
-        Term::Meta(id)     => Noun::cell(Noun::atom(0x09), Noun::atom(*id)),
+        Term::Const(id) => Noun::cell(Noun::atom(0x0B), Noun::atom(*id)),
+        Term::Meta(id) => Noun::cell(Noun::atom(0x09), Noun::atom(*id)),
     }
 }
 
 fn list_noun(terms: &[Term]) -> Noun {
-    terms.iter().rev().fold(Noun::atom(0), |acc, t| {
-        Noun::cell(term_to_noun(t), acc)
-    })
+    terms
+        .iter()
+        .rev()
+        .fold(Noun::atom(0), |acc, t| Noun::cell(term_to_noun(t), acc))
 }
 
 /// CLAIM(T) = Cell(atom(0xC0), T_noun) — tag a type as a claim.
@@ -163,27 +196,29 @@ pub fn verify_certificate(artifact: &ProofArtifact, env: &crate::env::Env) -> Ve
     let ctx = vec![];
     match check(env, &ctx, &artifact.proof_term, &artifact.claim_type) {
         Ok(()) => {
-            let expected_axon = ProofArtifact::new(
-                artifact.claim_type.clone(),
-                artifact.proof_term.clone(),
-            ).axon;
+            let expected_axon =
+                ProofArtifact::new(artifact.claim_type.clone(), artifact.proof_term.clone()).axon;
             if expected_axon == artifact.axon {
                 VerifyResult::Valid {
                     claim: format!("{:?}", artifact.claim_type),
                     axon: artifact.axon,
                 }
             } else {
-                VerifyResult::Invalid { reason: "axon mismatch".into() }
+                VerifyResult::Invalid {
+                    reason: "axon mismatch".into(),
+                }
             }
         }
-        Err(e) => VerifyResult::Invalid { reason: format!("{e:?}") },
+        Err(e) => VerifyResult::Invalid {
+            reason: format!("{e:?}"),
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stdlib::{std_env, nat, nat_zero};
+    use crate::stdlib::{nat, nat_zero, std_env};
 
     #[test]
     fn noun_atom_roundtrip() {
@@ -229,10 +264,13 @@ mod tests {
         // zero : Nat
         let artifact = ProofArtifact::new(nat(), nat_zero());
         let result = verify_certificate(&artifact, &env);
-        assert_eq!(result, VerifyResult::Valid {
-            claim: format!("{:?}", nat()),
-            axon: artifact.axon,
-        });
+        assert_eq!(
+            result,
+            VerifyResult::Valid {
+                claim: format!("{:?}", nat()),
+                axon: artifact.axon,
+            }
+        );
     }
 
     #[test]
@@ -256,7 +294,13 @@ mod tests {
 
     #[test]
     fn term_to_noun_sort() {
-        assert_eq!(term_to_noun(&Term::Sort(0)), Noun::cell(Noun::atom(0x01), Noun::atom(0)));
-        assert_eq!(term_to_noun(&Term::Sort(1)), Noun::cell(Noun::atom(0x01), Noun::atom(1)));
+        assert_eq!(
+            term_to_noun(&Term::Sort(0)),
+            Noun::cell(Noun::atom(0x01), Noun::atom(0))
+        );
+        assert_eq!(
+            term_to_noun(&Term::Sort(1)),
+            Noun::cell(Noun::atom(0x01), Noun::atom(1))
+        );
     }
 }

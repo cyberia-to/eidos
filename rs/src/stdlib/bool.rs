@@ -1,19 +1,31 @@
 // stdlib/bool.rs — Bool inductive type and helpers
-use crate::{env::{Env, IndDesc}, term::Term};
 use super::ids::*;
+use crate::{
+    env::{Env, IndDesc},
+    term::Term,
+};
 
-pub fn bool_ty()    -> Term { Term::Ind(BOOL_ID, vec![]) }
-pub fn bool_false() -> Term { Term::Ctor(BOOL_ID, BOOL_FALSE_IDX, vec![]) }
-pub fn bool_true()  -> Term { Term::Ctor(BOOL_ID, BOOL_TRUE_IDX,  vec![]) }
+pub fn bool_ty() -> Term {
+    Term::Ind(BOOL_ID, vec![])
+}
+pub fn bool_false() -> Term {
+    Term::Ctor(BOOL_ID, BOOL_FALSE_IDX, vec![])
+}
+pub fn bool_true() -> Term {
+    Term::Ctor(BOOL_ID, BOOL_TRUE_IDX, vec![])
+}
 
 pub fn declare_bool(env: &mut Env) {
     let b = bool_ty();
-    env.insert(BOOL_ID, IndDesc {
-        arity: 0,
-        sort: 1,
-        param_tel: Term::Sort(0),
-        constructors: vec![b.clone(), b.clone()],
-    });
+    env.insert(
+        BOOL_ID,
+        IndDesc {
+            arity: 0,
+            sort: 1,
+            param_tel: Term::Sort(0),
+            constructors: vec![b.clone(), b.clone()],
+        },
+    );
 }
 
 /// bool_not b — boolean negation.
