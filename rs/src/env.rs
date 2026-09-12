@@ -37,7 +37,9 @@ pub struct Env {
 }
 
 impl Env {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn insert(&mut self, id: IndId, desc: IndDesc) {
         self.inds.insert(id, desc);

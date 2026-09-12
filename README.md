@@ -1,71 +1,78 @@
-eidos (εἶδος — form, essence, type in ancient Greek) is the proof assistant for [[cyber]]. CIC type theory over [[Goldilocks field]] elements. the type checker is a [[nox]] program — executing it produces a [[zheng]] certificate. every proved theorem becomes a [[cyberlink]] in the [[cybergraph]]. zero trusted setup. post-quantum. cybergraph-native.
+# Eidos
 
-eidos closes the loop: [[zheng]] proves execution correct, eidos proves programs correct. together they make [[cyber]] civilization-grade software possible.
+Eidos is an experimental proof assistant with a Rust type-checking kernel,
+elaborator, tactic engine and command-line interface. Its current useful boundary
+is strict checking of closed proof terms in a fixed Nat/Bool/Eq/Pos/BNat fragment.
+It is being used to check explicit algebraic statements and concrete arithmetic
+certificates for [Hemera](https://github.com/cyberia-to/hemera).
 
-```
-LAYER              │ ROLE                              │ LANGUAGE
-───────────────────┼───────────────────────────────────┼──────────────────
-term encoding      │ CIC terms as nox nouns            │ spec
-CIC kernel         │ type checker as nox patterns      │ nox IR (~200 rules)
-elaborator         │ surface syntax → kernel terms     │ rs
-tactic engine      │ proof construction                │ rs
-standard library   │ Nat, Bool, List, Vec, theorems    │ eidos
-zheng bridge       │ wrap type check in zheng          │ rs
-cybergraph bridge  │ store proof as cyberlink          │ rs
-```
+The current workspace version is `0.1.0`. This is a development snapshot;
+the first packaged release remains work in [the roadmap](roadmap/README.md).
+[Snapshot validation and release scope](audit/release-2026-09-12.md) distinguish
+the working checker from the planned integrations.
 
-## CIC type theory
+## Run a proof
 
-the Calculus of Inductive Constructions is a formal system where types and propositions are the same thing, and proofs are programs. a type `T` is simultaneously a proposition; a term of type `T` is simultaneously a proof that `T` holds. this is the [[Curry-Howard correspondence]] scaled to full mathematics.
+The library has no external Rust dependencies. From this repository:
 
-four constructs cover all of mathematics:
-
-- Π-types (dependent functions) — a function whose return type may depend on its argument. `(x : A) → B(x)`. universal quantification `∀x, P(x)` is a Π-type.
-- inductive types — user-defined recursive types with named constructors and a structural eliminator. `Nat`, `List`, `Vec n`, `Fin n`, equality — all inductive. the eliminator is the only way to consume an inductive type, which is what guarantees termination.
-- universes — `Type₀ : Type₁ : Type₂ : …`. every type lives at some universe level. universe polymorphism lets a definition quantify over levels.
-- structural recursion — recursive functions must recurse on a structurally smaller argument. the termination checker enforces this syntactically. no general recursion, no divergence.
-
-definitional equality in CIC goes beyond syntactic identity: β-reduction (apply a function), δ-reduction (unfold a definition), ι-reduction (eliminate an inductive constructor), and η-expansion (function extensionality for Π-types) are all definitionally equal. the type checker decides equality by reduction to a normal form.
-
-in eidos, CIC is instantiated over the [[Goldilocks field]] (p = 2⁶⁴ − 2³² + 1). terms are [[nox]] nouns — binary trees of field elements. the universe hierarchy is finite and field-bounded. the structural recursion measure is axis traversal depth on nouns.
-
-## trusted computing base
-
-a TCB is the set of components whose correctness must be assumed rather than proved — the floor beneath which verification does not reach. everything outside the TCB is checked; bugs there cannot produce false theorems.
-
-eidos TCB = 16 nox reduction patterns + [[zheng]] proof system math (SuperSpartan + Brakedown + sumcheck protocol).
-
-the CIC kernel encodes ~200 typing rules as nox patterns written by hand. executing the kernel on a claimed proof either accepts or rejects. [[zheng]] then certifies that execution itself was correct — producing a certificate anyone can verify. the certificate attests: "nox ran these patterns on this term and accepted."
-
-the trust chain is: CIC rules (human-auditable nox patterns) → nox execution (16 deterministic reductions) → zheng certificate (proven-correct sumcheck). the elaborator and tactic engine sit outside this chain — they produce candidate terms that the kernel checks. a buggy elaborator produces a term the kernel rejects. it cannot produce a term the kernel falsely accepts.
-
-## trust boundary
-
-## proof certificate
-
-every proved theorem P with proof π produces:
-
-```
-axon = H(check_kernel, H(π, P))
-cyberlink: axon → ok
+```sh
+cargo run --locked --offline -- check --strict examples/binary.ei
+cargo run --locked --offline -- check --strict examples/reduction.ei
 ```
 
-the [[cybergraph]] is the universal theorem database. every theorem proved by anyone is memoized. proving the same theorem twice costs zero — the second prover reads the existing cyberlink.
+`cargo install --path cli --locked` installs the local `eidos` binary.
+Working commands are `repl`, `eval <expression>`, `check <file.ei>` and
+`check --strict <file.ei>`. `--help` prints the current command list.
+The listed `search` and `verify` commands are unimplemented stubs that exit
+unsuccessfully. `--version` is not implemented in this snapshot.
 
-## dependency graph
+Use `check --strict` for admission-free checking. Ordinary `check` permits
+explicit axioms and is a broader experimental elaboration path.
 
-```
-nebu (field)
-  ↓
-hemera (hash)
-  ↓
-nox (VM) ← runs the type checker kernel
-  ↓
-zheng (proofs) ← certifies the type check execution
-  ↓
-eidos (proof assistant) ← this repo
-  ↓
-bbg (state) ← stores proof certificates as cyberlinks
-```
+## What strict checking establishes
 
-see [[CIC]] for type theory background, [[zheng]] for proof machinery, [[nox]] for the VM
+Strict checking follows transitive imports, elaborates declarations and rechecks
+their closed terms and types in a fresh fixed environment. It rejects axioms,
+`sorry`, unresolved holes, opaque constants, user-defined inductives and standard
+name shadowing. Import cycles and depths above 64 are rejected.
+
+Binary positive and nonnegative integers use kernel-reduced constructor terms.
+A concrete reduction certificate checks `modulus * quotient + remainder = input`
+and `remainder < modulus`. Host arithmetic can propose witnesses; acceptance
+comes from the kernel. Explicit law parameters remain assumptions of their
+theorems. These statements do not prove Hemera's complete implementation or its
+cryptographic security.
+
+The trusted base is the Rust kernel, reduction/substitution, fixed inductive
+descriptors and Rust compilation/execution. General inductive validation,
+resource-bounded normalization and universal machine-arithmetic refinement
+remain open. See [strict checking](specs/strict-checking.md) and
+[binary arithmetic](specs/binary-arithmetic.md).
+
+## Planned integration
+
+Executing the checker in nox, certifying that execution with zheng and storing
+proof links in cybergraph are design goals. This snapshot checks proofs locally
+in Rust and produces no zheng certificate. The public `certificate` module still
+contains prototype serialization and an FNV-1a placeholder hash; its artifacts
+are unsuitable as cryptographic certificates or durable content identities.
+
+The kernel itself has no independent soundness proof. A successful type check
+does not establish post-quantum security of a cryptographic construction.
+
+## Workspace and validation
+
+| Directory | Role |
+|---|---|
+| `rs/` | `cyber-eidos` library |
+| `cli/` | `eidos` binary |
+| `examples/` | Strict binary arithmetic examples |
+| `specs/` | Kernel, syntax and checking contracts |
+| `audit/` | Dated validation and release evidence |
+
+The full test suite currently embeds proof fixtures from sibling `../nox` and
+`../prysm` repositories. A standalone clone builds the library and CLI, but needs
+those fixtures to compile all tests. The snapshot audit pins their exact commits
+and records passing formatting, strict lint, documentation and functional checks.
+
+Eidos (εἶδος) means form or essence in ancient Greek.

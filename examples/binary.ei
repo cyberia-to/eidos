@@ -1,0 +1,3 @@
+-- Binary positives use existing CIC elimination, not an arithmetic oracle.
+theorem carry (n : Pos) : Eq Pos (Pos.succ (Pos.bit1 n)) (Pos.bit0 (Pos.succ n)) := by { rfl }
+theorem one_add (n : Pos) : Eq Pos (Pos.add Pos.one n) (Pos.succ n) := by { rfl }

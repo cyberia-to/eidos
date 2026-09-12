@@ -43,9 +43,8 @@ PROP is impredicative: `PI(A, B)` lives in PROP whenever B lives in PROP, regard
 universe level arithmetic:
 
 ```
-prop_max(0, v) = 0        -- PI into PROP stays in PROP
-prop_max(u, 0) = 0
-prop_max(u, v) = max(u,v) -- when both nonzero
+prop_max(u, 0) = 0        -- proposition-valued codomain stays in PROP
+prop_max(u, v) = max(u,v) -- when v is nonzero, including u = 0
 ```
 
 `PI(A, B)` lives in `SORT(prop_max(u, v))` where `A : SORT(u)` and `B : SORT(v)`.

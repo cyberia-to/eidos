@@ -1,7 +1,7 @@
 // tactic_ext/have.rs — tac_have_exact, tac_have_goal
-use crate::{ctx::CtxEntry, term::Term};
-use crate::tactic::{ProofState, TacticError};
 use crate::subst::shift;
+use crate::tactic::{ProofState, TacticError};
+use crate::{ctx::CtxEntry, term::Term};
 
 /// have h : T := e — introduce a local fact proved by term e.
 pub fn tac_have_exact(
@@ -20,26 +20,25 @@ pub fn tac_have_exact(
 }
 
 /// have h : T — create a subgoal for T, add h to the continuation goal context.
-pub fn tac_have_goal(
-    state: &mut ProofState,
-    name: &str,
-    ty: Term,
-) -> Result<(), TacticError> {
+pub fn tac_have_goal(state: &mut ProofState, name: &str, ty: Term) -> Result<(), TacticError> {
     let goal = state.goals.first().ok_or(TacticError::NoGoals)?;
     let ctx = goal.local_ctx.clone();
     let ctx_names = goal.names.clone();
     let original_expected = goal.expected.clone();
     let original_meta = goal.meta;
 
-    let m_h    = state.metas.next;
+    let m_h = state.metas.next;
     let m_body = state.metas.next + 1;
     state.metas.next += 2;
 
-    state.metas.assign(original_meta, Term::Let(
-        Box::new(ty.clone()),
-        Box::new(Term::Meta(m_h)),
-        Box::new(Term::Meta(m_body)),
-    ));
+    state.metas.assign(
+        original_meta,
+        Term::Let(
+            Box::new(ty.clone()),
+            Box::new(Term::Meta(m_h)),
+            Box::new(Term::Meta(m_body)),
+        ),
+    );
     state.goals.remove(0);
 
     let have_goal = crate::tactic::Goal {

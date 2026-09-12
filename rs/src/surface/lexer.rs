@@ -67,9 +67,9 @@ pub enum Token {
     At,         // @
     Underscore, // _
     // ── Literals / names ────────────────────────────────────────────────────
-    Ident(String),   // identifier, possibly dotted: Nat.zero
-    NatLit(u64),     // sequence of ASCII digits
-    Str(String),     // "..." string literal (used for import paths)
+    Ident(String), // identifier, possibly dotted: Nat.zero
+    NatLit(u64),   // sequence of ASCII digits
+    Str(String),   // "..." string literal (used for import paths)
     // ── Sentinel ────────────────────────────────────────────────────────────
     Eof,
 }
@@ -78,41 +78,41 @@ pub enum Token {
 
 fn keyword(s: &str) -> Option<Token> {
     match s {
-        "def"          => Some(Token::KwDef),
-        "theorem"      => Some(Token::KwTheorem),
-        "axiom"        => Some(Token::KwAxiom),
-        "inductive"    => Some(Token::KwInductive),
-        "where"        => Some(Token::KwWhere),
-        "with"         => Some(Token::KwWith),
-        "by"           => Some(Token::KwBy),
-        "fun"          => Some(Token::KwFun),
-        "forall"       => Some(Token::KwForall),
-        "let"          => Some(Token::KwLet),
-        "in"           => Some(Token::KwIn),
-        "have"         => Some(Token::KwHave),
-        "match"        => Some(Token::KwMatch),
-        "intro"        => Some(Token::KwIntro),
-        "exact"        => Some(Token::KwExact),
-        "apply"        => Some(Token::KwApply),
-        "induction"    => Some(Token::KwInduction),
-        "cases"        => Some(Token::KwCases),
-        "rfl"          => Some(Token::KwRfl),
-        "assumption"   => Some(Token::KwAssumption),
-        "simp"         => Some(Token::KwSimp),
-        "omega"        => Some(Token::KwOmega),
-        "decide"       => Some(Token::KwDecide),
-        "rewrite"      => Some(Token::KwRewrite),
-        "contradiction"=> Some(Token::KwContradiction),
-        "trivial"      => Some(Token::KwTrivial),
-        "sorry"        => Some(Token::KwSorry),
-        "case"         => Some(Token::KwCase),
-        "show"         => Some(Token::KwShow),
-        "clear"        => Some(Token::KwClear),
-        "revert"       => Some(Token::KwRevert),
-        "Prop"         => Some(Token::KwProp),
-        "Type"         => Some(Token::KwType),
-        "import"       => Some(Token::KwImport),
-        _              => None,
+        "def" => Some(Token::KwDef),
+        "theorem" => Some(Token::KwTheorem),
+        "axiom" => Some(Token::KwAxiom),
+        "inductive" => Some(Token::KwInductive),
+        "where" => Some(Token::KwWhere),
+        "with" => Some(Token::KwWith),
+        "by" => Some(Token::KwBy),
+        "fun" => Some(Token::KwFun),
+        "forall" => Some(Token::KwForall),
+        "let" => Some(Token::KwLet),
+        "in" => Some(Token::KwIn),
+        "have" => Some(Token::KwHave),
+        "match" => Some(Token::KwMatch),
+        "intro" => Some(Token::KwIntro),
+        "exact" => Some(Token::KwExact),
+        "apply" => Some(Token::KwApply),
+        "induction" => Some(Token::KwInduction),
+        "cases" => Some(Token::KwCases),
+        "rfl" => Some(Token::KwRfl),
+        "assumption" => Some(Token::KwAssumption),
+        "simp" => Some(Token::KwSimp),
+        "omega" => Some(Token::KwOmega),
+        "decide" => Some(Token::KwDecide),
+        "rewrite" => Some(Token::KwRewrite),
+        "contradiction" => Some(Token::KwContradiction),
+        "trivial" => Some(Token::KwTrivial),
+        "sorry" => Some(Token::KwSorry),
+        "case" => Some(Token::KwCase),
+        "show" => Some(Token::KwShow),
+        "clear" => Some(Token::KwClear),
+        "revert" => Some(Token::KwRevert),
+        "Prop" => Some(Token::KwProp),
+        "Type" => Some(Token::KwType),
+        "import" => Some(Token::KwImport),
+        _ => None,
     }
 }
 
@@ -124,9 +124,13 @@ struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    fn new(src: &'a str) -> Self { Lexer { src, pos: 0 } }
+    fn new(src: &'a str) -> Self {
+        Lexer { src, pos: 0 }
+    }
 
-    fn remaining(&self) -> &str { &self.src[self.pos..] }
+    fn remaining(&self) -> &str {
+        &self.src[self.pos..]
+    }
 
     fn peek_char(&self) -> Option<char> {
         self.remaining().chars().next()
@@ -145,14 +149,20 @@ impl<'a> Lexer<'a> {
     /// Skip ASCII whitespace.
     fn skip_whitespace(&mut self) {
         while let Some(c) = self.peek_char() {
-            if c.is_whitespace() { self.advance_char(); } else { break; }
+            if c.is_whitespace() {
+                self.advance_char();
+            } else {
+                break;
+            }
         }
     }
 
     /// Skip a `--` line comment through end-of-line.
     fn skip_line_comment(&mut self) {
         while let Some(c) = self.advance_char() {
-            if c == '\n' { break; }
+            if c == '\n' {
+                break;
+            }
         }
     }
 
@@ -216,7 +226,12 @@ impl<'a> Lexer<'a> {
         let mut buf = String::new();
         buf.push(first);
         while let Some(c) = self.peek_char() {
-            if c.is_ascii_digit() { buf.push(c); self.advance_char(); } else { break; }
+            if c.is_ascii_digit() {
+                buf.push(c);
+                self.advance_char();
+            } else {
+                break;
+            }
         }
         buf.parse::<u64>()
             .map(Token::NatLit)
@@ -227,7 +242,7 @@ impl<'a> Lexer<'a> {
         self.skip_trivia();
 
         let c = match self.peek_char() {
-            None    => return Ok(Token::Eof),
+            None => return Ok(Token::Eof),
             Some(c) => c,
         };
         self.advance_char(); // consume c
@@ -235,18 +250,28 @@ impl<'a> Lexer<'a> {
         match c {
             // ── Multi-char punctuation ──────────────────────────────────────
             ':' => {
-                if self.starts_with("=") { self.advance_char(); Ok(Token::ColonEq) }
-                else { Ok(Token::Colon) }
+                if self.starts_with("=") {
+                    self.advance_char();
+                    Ok(Token::ColonEq)
+                } else {
+                    Ok(Token::Colon)
+                }
             }
             '-' => {
-                if self.starts_with(">") { self.advance_char(); Ok(Token::Arrow) }
-                else {
-                    Err(format!("unexpected character '-' (did you mean '->'?)"))
+                if self.starts_with(">") {
+                    self.advance_char();
+                    Ok(Token::Arrow)
+                } else {
+                    Err("unexpected character '-' (did you mean '->'?)".to_string())
                 }
             }
             '=' => {
-                if self.starts_with(">") { self.advance_char(); Ok(Token::FatArrow) }
-                else { Err(format!("unexpected '=' (did you mean '=>' or ':='?)")) }
+                if self.starts_with(">") {
+                    self.advance_char();
+                    Ok(Token::FatArrow)
+                } else {
+                    Err("unexpected '=' (did you mean '=>' or ':='?)".to_string())
+                }
             }
             // ── Single-char ASCII ───────────────────────────────────────────
             '(' => Ok(Token::LParen),
@@ -272,13 +297,13 @@ impl<'a> Lexer<'a> {
                 }
             }
             // ── Unicode punctuation ─────────────────────────────────────────
-            '∀' => Ok(Token::KwForall),   // U+2200
-            'λ' => Ok(Token::KwFun),      // U+03BB
-            '→' => Ok(Token::Arrow),      // U+2192
-            '←' => Ok(Token::BackArrow),  // U+2190
-            '·' => Ok(Token::Bullet),     // U+00B7
-            '⟨' => Ok(Token::LAngle),     // U+27E8
-            '⟩' => Ok(Token::RAngle),     // U+27E9
+            '∀' => Ok(Token::KwForall),  // U+2200
+            'λ' => Ok(Token::KwFun),     // U+03BB
+            '→' => Ok(Token::Arrow),     // U+2192
+            '←' => Ok(Token::BackArrow), // U+2190
+            '·' => Ok(Token::Bullet),    // U+00B7
+            '⟨' => Ok(Token::LAngle),    // U+27E8
+            '⟩' => Ok(Token::RAngle),    // U+27E9
             // ── Identifiers ─────────────────────────────────────────────────
             c if c.is_alphabetic() => Ok(self.lex_ident(c)),
             // ── Numeric literals ────────────────────────────────────────────
@@ -289,13 +314,16 @@ impl<'a> Lexer<'a> {
                 loop {
                     match self.advance_char() {
                         Some('"') => break,
-                        Some(c)   => buf.push(c),
-                        None      => return Err("unterminated string literal".into()),
+                        Some(c) => buf.push(c),
+                        None => return Err("unterminated string literal".into()),
                     }
                 }
                 Ok(Token::Str(buf))
             }
-            other => Err(format!("unexpected character: {:?} (U+{:04X})", other, other as u32)),
+            other => Err(format!(
+                "unexpected character: {:?} (U+{:04X})",
+                other, other as u32
+            )),
         }
     }
 }
@@ -312,7 +340,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, String> {
         let tok = lexer.next_token()?;
         let is_eof = tok == Token::Eof;
         tokens.push(tok);
-        if is_eof { break; }
+        if is_eof {
+            break;
+        }
     }
     Ok(tokens)
 }
@@ -323,7 +353,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, String> {
 mod tests {
     use super::*;
 
-    fn toks(src: &str) -> Vec<Token> { lex(src).unwrap() }
+    fn toks(src: &str) -> Vec<Token> {
+        lex(src).unwrap()
+    }
 
     #[test]
     fn empty() {

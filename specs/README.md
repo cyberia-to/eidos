@@ -15,6 +15,7 @@ canonical specification of the eidos proof assistant. this is the source of trut
 | terms.md | CIC term syntax, encoding as nox nouns, universe hierarchy | draft |
 | kernel.md | type checker: infer(), check(), all CIC rules as nox patterns | draft |
 | surface.md | surface syntax, elaboration, implicit arguments | draft |
+| strict-checking.md | implemented Nat/Bool/Eq checking without admissions | restricted fragment |
 | tactics.md | tactic set, proof state, combinators | draft |
 | stdlib.md | standard library: Nat, Bool, List, Vec, Fin, core theorems | draft |
 | certificate.md | proof certificate format, zheng wrapping, cyberlink schema | draft |

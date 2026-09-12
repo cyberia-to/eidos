@@ -1,19 +1,25 @@
 // tactic_runner — execute surface Tactic lists against a ProofState
 // spec: specs/tactics.md
 
+use super::parser::{Proof, Tactic};
 use crate::{
     ctx::CtxEntry,
+    elab::{
+        ast::Expr,
+        core::{elab_expr, ElabState},
+        ElabError,
+    },
     env::Env,
-    elab::{ast::Expr, core::{elab_expr, ElabState}, ElabError},
-    tactic::{tac_assumption, tac_exact, tac_intro, tac_rfl, tac_revert,
-              tac_show, tac_clear, ProofState, TacticError},
+    tactic::{
+        tac_assumption, tac_clear, tac_exact, tac_intro, tac_revert, tac_rfl, tac_show, ProofState,
+        TacticError,
+    },
     tactic_ext::{
         tac_apply, tac_cases, tac_contradiction, tac_decide, tac_have_exact, tac_have_goal,
         tac_induction, tac_omega, tac_rewrite, tac_simp, tac_trivial,
     },
     term::Term,
 };
-use super::parser::{Proof, Tactic};
 
 // ── Error ─────────────────────────────────────────────────────────────────────
 
@@ -21,16 +27,20 @@ use super::parser::{Proof, Tactic};
 pub enum RunError {
     Tactic(TacticError),
     Elab(ElabError),
-    Sorry(String),  // sorry was used — proof incomplete
+    Sorry(String), // sorry was used — proof incomplete
     NoGoals,
     GoalMismatch(String),
 }
 
 impl From<TacticError> for RunError {
-    fn from(e: TacticError) -> Self { RunError::Tactic(e) }
+    fn from(e: TacticError) -> Self {
+        RunError::Tactic(e)
+    }
 }
 impl From<ElabError> for RunError {
-    fn from(e: ElabError) -> Self { RunError::Elab(e) }
+    fn from(e: ElabError) -> Self {
+        RunError::Elab(e)
+    }
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────
@@ -63,7 +73,9 @@ pub fn run_proof(
             // Extract root proof term; caller (check_theorem) does the real kernel check
             // with the correct local context. ps.verify uses empty_ctx which fails for
             // parameterized theorems (free variables from params).
-            let root = ps.metas.lookup(0)
+            let root = ps
+                .metas
+                .lookup(0)
                 .ok_or_else(|| RunError::GoalMismatch("root meta unassigned".into()))?;
             Ok(ps.metas.apply(root))
         }
@@ -107,13 +119,21 @@ fn run_one(
             tac_apply(ps, term)?;
         }
 
-        Tactic::Rfl => { tac_rfl(ps)?; }
+        Tactic::Rfl => {
+            tac_rfl(ps)?;
+        }
 
-        Tactic::Assumption => { tac_assumption(ps)?; }
+        Tactic::Assumption => {
+            tac_assumption(ps)?;
+        }
 
-        Tactic::Omega => { tac_omega(ps)?; }
+        Tactic::Omega => {
+            tac_omega(ps)?;
+        }
 
-        Tactic::Decide => { tac_decide(ps)?; }
+        Tactic::Decide => {
+            tac_decide(ps)?;
+        }
 
         Tactic::Simp(lemmas) => {
             tac_simp(ps)?;
@@ -124,9 +144,13 @@ fn run_one(
             // TODO: apply provided lemmas via rewrite
         }
 
-        Tactic::Contradiction => { tac_contradiction(ps)?; }
+        Tactic::Contradiction => {
+            tac_contradiction(ps)?;
+        }
 
-        Tactic::Trivial => { tac_trivial(ps)?; }
+        Tactic::Trivial => {
+            tac_trivial(ps)?;
+        }
 
         Tactic::Show(expr) => {
             let goal = ps.goals.first().ok_or(TacticError::NoGoals)?;
@@ -156,19 +180,17 @@ fn run_one(
 
         Tactic::Induction(target) => {
             let goal = ps.goals.first().ok_or(TacticError::NoGoals)?;
-            let idx = find_local(&goal.names, target)
-                .ok_or_else(|| TacticError::TacticFailed(
-                    format!("induction: unknown variable {target}")
-                ))?;
+            let idx = find_local(&goal.names, target).ok_or_else(|| {
+                TacticError::TacticFailed(format!("induction: unknown variable {target}"))
+            })?;
             tac_induction(ps, idx)?;
         }
 
         Tactic::Cases(target) => {
             let goal = ps.goals.first().ok_or(TacticError::NoGoals)?;
-            let idx = find_local(&goal.names, target)
-                .ok_or_else(|| TacticError::TacticFailed(
-                    format!("cases: unknown variable {target}")
-                ))?;
+            let idx = find_local(&goal.names, target).ok_or_else(|| {
+                TacticError::TacticFailed(format!("cases: unknown variable {target}"))
+            })?;
             tac_cases(ps, idx)?;
         }
 
@@ -207,7 +229,11 @@ fn run_one(
             return Err(RunError::Sorry("theorem declared with sorry".into()));
         }
 
-        Tactic::Case { ctor: _, vars: _, body } => {
+        Tactic::Case {
+            ctor: _,
+            vars: _,
+            body,
+        } => {
             // Execute the body tactics on the current goal (first remaining)
             // Name binding for case vars is handled by intro
             run_tactics(st, env, ps, body)?;
@@ -239,7 +265,9 @@ fn elab_in_goal(
     ps: &ProofState,
     expr: &Expr,
 ) -> Result<(Term, Term), RunError> {
-    let (ctx, names) = ps.goals.first()
+    let (ctx, names) = ps
+        .goals
+        .first()
         .map(|g| (g.local_ctx.clone(), g.names.clone()))
         .unwrap_or_default();
     let saved = st.locals.clone();
@@ -251,8 +279,14 @@ fn elab_in_goal(
 
 /// Build a (name, type) locals list from a goal context, innermost first.
 fn goal_locals(ctx: &crate::ctx::Ctx, names: &[String]) -> Vec<(String, crate::term::Term)> {
-    ctx.iter().enumerate()
-        .map(|(i, e)| (names.get(i).cloned().unwrap_or_else(|| "_".into()), e.ty().clone()))
+    ctx.iter()
+        .enumerate()
+        .map(|(i, e)| {
+            (
+                names.get(i).cloned().unwrap_or_else(|| "_".into()),
+                e.ty().clone(),
+            )
+        })
         .collect()
 }
 
@@ -263,13 +297,9 @@ fn find_local(names: &[String], name: &str) -> Option<usize> {
 
 /// Build a symmetry proof: given `h : Eq A a b`, produce a proof of `Eq A b a`.
 /// Uses EqSubst with motive λ(x: A). Eq A x a.
-fn build_symm_proof(
-    ps: &ProofState,
-    env: &Env,
-    h: Term,
-) -> Result<Term, RunError> {
+fn build_symm_proof(ps: &ProofState, env: &Env, h: Term) -> Result<Term, RunError> {
     use crate::kernel::infer;
-    use crate::stdlib::{EQ_ID, eq_refl};
+    use crate::stdlib::{eq_refl, EQ_ID};
     use crate::subst::shift;
     let goal = ps.goals.first().ok_or(TacticError::NoGoals)?;
     let ctx = &goal.local_ctx;
@@ -280,15 +310,22 @@ fn build_symm_proof(
             // p_sym = λ(x: A). Eq A x a  (motive: x → Eq A x a)
             let p_sym = Term::Lam(
                 Box::new(a_ty.clone()),
-                Box::new(Term::Ind(EQ_ID, vec![
-                    shift(&a_ty, 1),
-                    Term::Var(0),   // x
-                    shift(&a, 1),   // a shifted past binder
-                ])),
+                Box::new(Term::Ind(
+                    EQ_ID,
+                    vec![
+                        shift(&a_ty, 1),
+                        Term::Var(0), // x
+                        shift(&a, 1), // a shifted past binder
+                    ],
+                )),
             );
             // EqSubst(p_sym, h, refl_a) : p_sym(b) = Eq A b a
             let refl_a = eq_refl(a_ty, a);
-            return Ok(Term::EqSubst(Box::new(p_sym), Box::new(h), Box::new(refl_a)));
+            return Ok(Term::EqSubst(
+                Box::new(p_sym),
+                Box::new(h),
+                Box::new(refl_a),
+            ));
         }
     }
     Err(TacticError::TacticFailed("rewrite ←: argument is not an Eq proof".into()).into())

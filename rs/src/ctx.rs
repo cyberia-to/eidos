@@ -30,7 +30,7 @@ pub fn ctx_lookup(ctx: &Ctx, i: usize) -> Option<CtxEntry> {
     let entry = ctx.get(i)?;
     let n = (i + 1) as u64;
     Some(match entry {
-        CtxEntry::Var(a)    => CtxEntry::Var(shift(a, n)),
+        CtxEntry::Var(a) => CtxEntry::Var(shift(a, n)),
         CtxEntry::Let(a, v) => CtxEntry::Let(shift(a, n), shift(v, n)),
     })
 }

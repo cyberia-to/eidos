@@ -40,7 +40,9 @@ pub enum SurfaceDecl {
         sort: Expr,
         ctors: Vec<(String, Expr)>,
     },
-    Import { path: String },
+    Import {
+        path: String,
+    },
     CheckCmd(Expr),
 }
 
@@ -52,7 +54,9 @@ pub(crate) struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub(crate) fn new(tokens: &'a [Token]) -> Self { Parser { tokens, pos: 0 } }
+    pub(crate) fn new(tokens: &'a [Token]) -> Self {
+        Parser { tokens, pos: 0 }
+    }
 
     pub(crate) fn peek(&self) -> &Token {
         self.tokens.get(self.pos).unwrap_or(&Token::Eof)
@@ -60,7 +64,9 @@ impl<'a> Parser<'a> {
 
     pub(crate) fn advance(&mut self) -> &Token {
         let t = self.tokens.get(self.pos).unwrap_or(&Token::Eof);
-        if self.pos < self.tokens.len() { self.pos += 1; }
+        if self.pos < self.tokens.len() {
+            self.pos += 1;
+        }
         t
     }
 
@@ -75,12 +81,17 @@ impl<'a> Parser<'a> {
 
     pub(crate) fn eat_ident(&mut self) -> Result<String, String> {
         match self.peek().clone() {
-            Token::Ident(s) => { self.advance(); Ok(s) }
+            Token::Ident(s) => {
+                self.advance();
+                Ok(s)
+            }
             other => Err(format!("expected identifier, found {:?}", other)),
         }
     }
 
-    fn is_at_end(&self) -> bool { matches!(self.peek(), Token::Eof) }
+    fn is_at_end(&self) -> bool {
+        matches!(self.peek(), Token::Eof)
+    }
 }
 
 // ── Binder parsing ────────────────────────────────────────────────────────────
@@ -93,7 +104,10 @@ fn parse_binder_group(p: &mut Parser) -> Result<Vec<Binder>, String> {
             p.eat(&Token::Colon)?;
             let ty = parse_expr(p)?;
             p.eat(&Token::RParen)?;
-            Ok(names.into_iter().map(|n| Binder::Explicit(n, Box::new(ty.clone()))).collect())
+            Ok(names
+                .into_iter()
+                .map(|n| Binder::Explicit(n, Box::new(ty.clone())))
+                .collect())
         }
         Token::LBrace => {
             p.advance();
@@ -101,7 +115,10 @@ fn parse_binder_group(p: &mut Parser) -> Result<Vec<Binder>, String> {
             p.eat(&Token::Colon)?;
             let ty = parse_expr(p)?;
             p.eat(&Token::RBrace)?;
-            Ok(names.into_iter().map(|n| Binder::Implicit(n, Box::new(ty.clone()))).collect())
+            Ok(names
+                .into_iter()
+                .map(|n| Binder::Implicit(n, Box::new(ty.clone())))
+                .collect())
         }
         other => Err(format!("expected binder '(' or '{{', found {:?}", other)),
     }
@@ -109,17 +126,16 @@ fn parse_binder_group(p: &mut Parser) -> Result<Vec<Binder>, String> {
 
 fn parse_name_list(p: &mut Parser) -> Result<Vec<String>, String> {
     let mut names = vec![p.eat_ident()?];
-    while let Token::Ident(_) = p.peek() { names.push(p.eat_ident()?); }
+    while let Token::Ident(_) = p.peek() {
+        names.push(p.eat_ident()?);
+    }
     Ok(names)
 }
 
 pub(crate) fn parse_binders(p: &mut Parser) -> Result<Vec<Binder>, String> {
     let mut binders = Vec::new();
-    loop {
-        match p.peek() {
-            Token::LParen | Token::LBrace => binders.extend(parse_binder_group(p)?),
-            _ => break,
-        }
+    while let Token::LParen | Token::LBrace = p.peek() {
+        binders.extend(parse_binder_group(p)?);
     }
     Ok(binders)
 }
@@ -160,26 +176,50 @@ fn parse_app_expr(p: &mut Parser) -> Result<Expr, String> {
 }
 
 fn is_atom_start(t: &Token) -> bool {
-    matches!(t,
-        Token::Ident(_) | Token::NatLit(_) | Token::LParen |
-        Token::KwFun | Token::KwForall | Token::KwLet |
-        Token::KwProp | Token::KwType | Token::At |
-        Token::Underscore | Token::LAngle |
-        Token::KwSorry | Token::KwRfl | Token::KwAssumption |
-        Token::KwTrivial | Token::KwContradiction
+    matches!(
+        t,
+        Token::Ident(_)
+            | Token::NatLit(_)
+            | Token::LParen
+            | Token::KwFun
+            | Token::KwForall
+            | Token::KwLet
+            | Token::KwProp
+            | Token::KwType
+            | Token::At
+            | Token::Underscore
+            | Token::LAngle
+            | Token::KwSorry
+            | Token::KwRfl
+            | Token::KwAssumption
+            | Token::KwTrivial
+            | Token::KwContradiction
     )
 }
 
 fn parse_atom(p: &mut Parser) -> Result<Expr, String> {
     match p.peek().clone() {
-        Token::Ident(s)   => { p.advance(); Ok(Expr::Name(s)) }
-        Token::NatLit(n)  => { p.advance(); Ok(Expr::NatLit(n)) }
-        Token::Underscore => { p.advance(); Ok(Expr::Hole) }
-        Token::KwProp     => { p.advance(); Ok(Expr::Sort(None)) }
+        Token::Ident(s) => {
+            p.advance();
+            Ok(Expr::Name(s))
+        }
+        Token::NatLit(n) => {
+            p.advance();
+            Ok(Expr::NatLit(n))
+        }
+        Token::Underscore => {
+            p.advance();
+            Ok(Expr::Hole)
+        }
+        Token::KwProp => {
+            p.advance();
+            Ok(Expr::Sort(None))
+        }
         Token::KwType => {
             p.advance();
             if let Token::NatLit(n) = p.peek().clone() {
-                p.advance(); Ok(Expr::Sort(Some(n)))
+                p.advance();
+                Ok(Expr::Sort(Some(n)))
             } else {
                 Ok(Expr::Sort(Some(0)))
             }
@@ -195,21 +235,30 @@ fn parse_atom(p: &mut Parser) -> Result<Expr, String> {
             let bs = parse_binders_inline(p)?;
             p.eat(&Token::FatArrow)?;
             let body = parse_expr(p)?;
-            Ok(bs.into_iter().rev().fold(body, |acc, b| Expr::Fun(b, Box::new(acc))))
+            Ok(bs
+                .into_iter()
+                .rev()
+                .fold(body, |acc, b| Expr::Fun(b, Box::new(acc))))
         }
         Token::KwForall => {
             p.advance();
             let bs = parse_binders_inline(p)?;
             p.eat(&Token::Comma)?;
             let body = parse_expr(p)?;
-            Ok(bs.into_iter().rev().fold(body, |acc, b| Expr::Pi(b, Box::new(acc))))
+            Ok(bs
+                .into_iter()
+                .rev()
+                .fold(body, |acc, b| Expr::Pi(b, Box::new(acc))))
         }
         Token::KwLet => {
             p.advance();
             let name = p.eat_ident()?;
             let ty = if matches!(p.peek(), Token::Colon) {
-                p.advance(); parse_expr(p)?
-            } else { Expr::Hole };
+                p.advance();
+                parse_expr(p)?
+            } else {
+                Expr::Hole
+            };
             p.eat(&Token::ColonEq)?;
             let val = parse_expr(p)?;
             p.eat(&Token::KwIn)?;
@@ -232,15 +281,32 @@ fn parse_atom(p: &mut Parser) -> Result<Expr, String> {
             }
             p.eat(&Token::RAngle)?;
             let mut acc = Expr::Name("⟨⟩".to_string());
-            for a in args { acc = Expr::App(Box::new(acc), Box::new(a)); }
+            for a in args {
+                acc = Expr::App(Box::new(acc), Box::new(a));
+            }
             Ok(acc)
         }
         // Tactic keywords that appear as term-proof heads
-        Token::KwSorry         => { p.advance(); Ok(Expr::Name("sorry".into())) }
-        Token::KwRfl            => { p.advance(); Ok(Expr::Name("rfl".into())) }
-        Token::KwAssumption     => { p.advance(); Ok(Expr::Name("assumption".into())) }
-        Token::KwTrivial        => { p.advance(); Ok(Expr::Name("trivial".into())) }
-        Token::KwContradiction  => { p.advance(); Ok(Expr::Name("contradiction".into())) }
+        Token::KwSorry => {
+            p.advance();
+            Ok(Expr::Name("sorry".into()))
+        }
+        Token::KwRfl => {
+            p.advance();
+            Ok(Expr::Name("rfl".into()))
+        }
+        Token::KwAssumption => {
+            p.advance();
+            Ok(Expr::Name("assumption".into()))
+        }
+        Token::KwTrivial => {
+            p.advance();
+            Ok(Expr::Name("trivial".into()))
+        }
+        Token::KwContradiction => {
+            p.advance();
+            Ok(Expr::Name("contradiction".into()))
+        }
         other => Err(format!("expected expression, found {:?}", other)),
     }
 }
@@ -257,7 +323,11 @@ fn parse_binders_inline(p: &mut Parser) -> Result<Vec<Binder>, String> {
             _ => break,
         }
     }
-    if binders.is_empty() { Err("expected at least one binder".into()) } else { Ok(binders) }
+    if binders.is_empty() {
+        Err("expected at least one binder".into())
+    } else {
+        Ok(binders)
+    }
 }
 
 // ── Declaration parsing ───────────────────────────────────────────────────────
@@ -267,7 +337,9 @@ fn parse_decl(p: &mut Parser) -> Result<SurfaceDecl, String> {
         Token::Hash => {
             p.advance();
             match p.peek().clone() {
-                Token::Ident(kw) if kw == "check" => { p.advance(); }
+                Token::Ident(kw) if kw == "check" => {
+                    p.advance();
+                }
                 other => return Err(format!("expected 'check' after '#', found {:?}", other)),
             }
             Ok(SurfaceDecl::CheckCmd(parse_expr(p)?))
@@ -279,7 +351,12 @@ fn parse_decl(p: &mut Parser) -> Result<SurfaceDecl, String> {
             p.eat(&Token::Colon)?;
             let ty = parse_expr(p)?;
             p.eat(&Token::ColonEq)?;
-            Ok(SurfaceDecl::Def { name, params, ty, body: parse_expr(p)? })
+            Ok(SurfaceDecl::Def {
+                name,
+                params,
+                ty,
+                body: parse_expr(p)?,
+            })
         }
         Token::KwTheorem => {
             p.advance();
@@ -288,14 +365,23 @@ fn parse_decl(p: &mut Parser) -> Result<SurfaceDecl, String> {
             p.eat(&Token::Colon)?;
             let ty = parse_expr(p)?;
             p.eat(&Token::ColonEq)?;
-            Ok(SurfaceDecl::Theorem { name, params, ty, proof: tactics::parse_proof(p)? })
+            Ok(SurfaceDecl::Theorem {
+                name,
+                params,
+                ty,
+                proof: tactics::parse_proof(p)?,
+            })
         }
         Token::KwAxiom => {
             p.advance();
             let name = p.eat_ident()?;
             let params = parse_binders(p)?;
             p.eat(&Token::Colon)?;
-            Ok(SurfaceDecl::Axiom { name, params, ty: parse_expr(p)? })
+            Ok(SurfaceDecl::Axiom {
+                name,
+                params,
+                ty: parse_expr(p)?,
+            })
         }
         Token::KwInductive => {
             p.advance();
@@ -311,13 +397,24 @@ fn parse_decl(p: &mut Parser) -> Result<SurfaceDecl, String> {
                 p.eat(&Token::Colon)?;
                 ctors.push((ctor_name, parse_expr(p)?));
             }
-            Ok(SurfaceDecl::Inductive { name, params, sort, ctors })
+            Ok(SurfaceDecl::Inductive {
+                name,
+                params,
+                sort,
+                ctors,
+            })
         }
         Token::KwImport => {
             p.advance();
             match p.peek().clone() {
-                Token::Str(path) => { p.advance(); Ok(SurfaceDecl::Import { path }) }
-                other => Err(format!("expected string path after 'import', found {:?}", other)),
+                Token::Str(path) => {
+                    p.advance();
+                    Ok(SurfaceDecl::Import { path })
+                }
+                other => Err(format!(
+                    "expected string path after 'import', found {:?}",
+                    other
+                )),
             }
         }
         other => Err(format!("expected declaration keyword, found {:?}", other)),
@@ -330,7 +427,9 @@ fn parse_decl(p: &mut Parser) -> Result<SurfaceDecl, String> {
 pub fn parse_file(tokens: &[Token]) -> Result<Vec<SurfaceDecl>, String> {
     let mut p = Parser::new(tokens);
     let mut decls = Vec::new();
-    while !p.is_at_end() { decls.push(parse_decl(&mut p)?); }
+    while !p.is_at_end() {
+        decls.push(parse_decl(&mut p)?);
+    }
     Ok(decls)
 }
 
@@ -354,11 +453,13 @@ mod tests {
         parse_tactic_block(&lex(src).unwrap()).unwrap()
     }
 
-    #[test] fn axiom_simple() {
+    #[test]
+    fn axiom_simple() {
         let ds = decls("axiom em : Prop");
         assert!(matches!(&ds[0], SurfaceDecl::Axiom { name, .. } if name == "em"));
     }
-    #[test] fn def_identity() {
+    #[test]
+    fn def_identity() {
         let ds = decls("def id (A : Type) (a : A) : A := a");
         match &ds[0] {
             SurfaceDecl::Def { name, params, .. } => {
@@ -368,15 +469,30 @@ mod tests {
             _ => panic!("expected Def"),
         }
     }
-    #[test] fn theorem_term_proof() {
+    #[test]
+    fn theorem_term_proof() {
         let ds = decls("theorem t : Prop := sorry");
-        assert!(matches!(&ds[0], SurfaceDecl::Theorem { proof: Proof::Term(_), .. }));
+        assert!(matches!(
+            &ds[0],
+            SurfaceDecl::Theorem {
+                proof: Proof::Term(_),
+                ..
+            }
+        ));
     }
-    #[test] fn theorem_tactic_proof() {
+    #[test]
+    fn theorem_tactic_proof() {
         let ds = decls("theorem t : Prop := by { sorry }");
-        assert!(matches!(&ds[0], SurfaceDecl::Theorem { proof: Proof::Tactics(_), .. }));
+        assert!(matches!(
+            &ds[0],
+            SurfaceDecl::Theorem {
+                proof: Proof::Tactics(_),
+                ..
+            }
+        ));
     }
-    #[test] fn inductive_nat() {
+    #[test]
+    fn inductive_nat() {
         let ds = decls("inductive Nat : Type where | zero : Nat | succ : Nat -> Nat");
         match &ds[0] {
             SurfaceDecl::Inductive { name, ctors, .. } => {
@@ -386,64 +502,96 @@ mod tests {
             _ => panic!("expected Inductive"),
         }
     }
-    #[test] fn check_cmd() {
+    #[test]
+    fn check_cmd() {
         let ds = decls("#check Nat.zero");
         assert!(matches!(&ds[0], SurfaceDecl::CheckCmd(Expr::Name(n)) if n == "Nat.zero"));
     }
-    #[test] fn arrow_type() {
+    #[test]
+    fn arrow_type() {
         let ds = decls("axiom f : Nat -> Nat");
-        assert!(matches!(&ds[0], SurfaceDecl::Axiom { ty: Expr::Arrow(..), .. }));
+        assert!(matches!(
+            &ds[0],
+            SurfaceDecl::Axiom {
+                ty: Expr::Arrow(..),
+                ..
+            }
+        ));
     }
-    #[test] fn forall_expr() {
+    #[test]
+    fn forall_expr() {
         let ds = decls("axiom f : ∀ (n : Nat), Nat");
-        assert!(matches!(&ds[0], SurfaceDecl::Axiom { ty: Expr::Pi(..), .. }));
+        assert!(matches!(
+            &ds[0],
+            SurfaceDecl::Axiom {
+                ty: Expr::Pi(..),
+                ..
+            }
+        ));
     }
-    #[test] fn tactic_intro_exact() {
+    #[test]
+    fn tactic_intro_exact() {
         let ts = tactics("intro n; exact n");
         assert_eq!(ts.len(), 2);
         assert!(matches!(&ts[0], Tactic::Intro(ns) if ns[0] == "n"));
         assert!(matches!(&ts[1], Tactic::Exact(Expr::Name(n)) if n == "n"));
     }
-    #[test] fn tactic_simp_lemmas() {
+    #[test]
+    fn tactic_simp_lemmas() {
         let ts = tactics("simp [Nat.add_comm, h]");
         assert!(matches!(&ts[0], Tactic::Simp(ls) if ls.len() == 2));
     }
-    #[test] fn tactic_have() {
+    #[test]
+    fn tactic_have() {
         let ts = tactics("have h : Nat := Nat.zero");
         assert!(matches!(&ts[0], Tactic::Have { name, .. } if name == "h"));
     }
-    #[test] fn tactic_rewrite_reverse() {
+    #[test]
+    fn tactic_rewrite_reverse() {
         let ts = tactics("rewrite [← h]");
         assert!(matches!(&ts[0], Tactic::Rewrite { reverse: true, .. }));
     }
-    #[test] fn tactic_bullet_focus() {
+    #[test]
+    fn tactic_bullet_focus() {
         let ts = tactics("· exact h");
         assert!(matches!(&ts[0], Tactic::Focus(_)));
     }
-    #[test] fn tactic_case() {
+    #[test]
+    fn tactic_case() {
         let ts = tactics("case zero => rfl");
         assert!(matches!(&ts[0], Tactic::Case { ctor, body, .. }
             if ctor == "zero" && matches!(body[0], Tactic::Rfl)));
     }
-    #[test] fn multi_name_binder() {
+    #[test]
+    fn multi_name_binder() {
         let ds = decls("def swap (n m : Nat) : Nat := n");
         match &ds[0] {
             SurfaceDecl::Def { params, .. } => assert_eq!(params.len(), 2),
             _ => panic!("expected Def"),
         }
     }
-    #[test] fn type_universe_level() {
+    #[test]
+    fn type_universe_level() {
         let ds = decls("axiom big : Type 2");
-        assert!(matches!(&ds[0], SurfaceDecl::Axiom { ty: Expr::Sort(Some(2)), .. }));
+        assert!(matches!(
+            &ds[0],
+            SurfaceDecl::Axiom {
+                ty: Expr::Sort(Some(2)),
+                ..
+            }
+        ));
     }
-    #[test] fn anon_ctor() {
+    #[test]
+    fn anon_ctor() {
         let ds = decls("def p : Unit := ⟨⟩");
         assert!(matches!(&ds[0], SurfaceDecl::Def { .. }));
     }
-    #[test] fn empty_file() {
+    #[test]
+    fn empty_file() {
         assert_eq!(decls(""), vec![]);
     }
-    #[test] fn eof_without_panic() {
+    #[test]
+    fn eof_without_panic() {
         let toks = lex("def").unwrap();
         assert!(parse_file(&toks).is_err());
     }
