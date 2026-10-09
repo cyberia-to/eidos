@@ -16,7 +16,7 @@ a certificate for theorem `P` with proof `π` is evidence for:
 check_kernel(Σ, [], π, P) = Ok
 ```
 
-this is a nox execution. [[zheng]] certifies the execution trace, producing a proof that anyone can verify with the zheng verifier — a short nox program running in ~825 constraints.
+this is a nox execution. [[zheng]] certifies the execution trace, producing a proof that anyone can verify with the zheng verifier.
 
 ## proof artifact
 
@@ -156,7 +156,7 @@ all field elements are Goldilocks elements (8 bytes each). the proof is approxim
 5. verify Brakedown opening at r against committed trace
 ```
 
-the verifier runs as a nox program of ~825 constraint rows. verifier cost is O(log² N) in the trace size N.
+the verifier cost of the retired zheng design (a constant-size nox verifier) does not hold; the measured cost lives in [[soft3/proposals/proof-system-repair|the proof-system repair]].
 
 ## memoization protocol
 
@@ -169,7 +169,7 @@ memo_lookup(P, kernel_id) =
 
 the cybergraph does not support wildcard queries directly. instead: query particles tagged with CLAIM(P) in namespace 0, check if any existing axon matches. if found: re-use the existing cyberlink. cost: one BBG lookup.
 
-if the prover wants to verify the existing certificate: fetch the ProofArtifact particle, recover the proof, run `verify(instance, stark)`. this costs ~825 nox rows — constant time regardless of how complex the original proof was.
+if the prover wants to verify the existing certificate: fetch the ProofArtifact particle, recover the proof, run `verify(instance, stark)`. one verification, independent of how complex the original proof was.
 
 ## certificate pipeline
 
