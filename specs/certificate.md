@@ -137,7 +137,7 @@ Opening = {
 }
 ```
 
-all field elements are Goldilocks elements (8 bytes each). the proof is approximately 2–4 KB for typical kernel executions.
+all field elements are Goldilocks elements (8 bytes each). the proof size of the retired design does not hold; the repaired proof is bounded by the ≤ 64 KB goal of [[soft3/proposals/proof-system-repair|the proof-system repair]].
 
 ### verifier algorithm
 
