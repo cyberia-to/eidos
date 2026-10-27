@@ -1,5 +1,7 @@
 # eidos v0.1.0 — first anchor release
 
+see also [replace-lean.md](replace-lean.md) — the registry ladder E0–E5 (2026-10-27): the stack's assumptions registry is eidos's first real corpus; `Int` and the Goldilocks polynomial library move ahead of docs.
+
 ## Context
 
 eidos has solid bones: Cargo workspace (`rs/` library + `cli/` binary), CIC kernel + elaborator + tactic engine, 8 spec files, 139 lib tests, and 27+ theorems verified across `nox/proofs/` and `prysm/proofs/`. Replacement-plan phases 1–5 complete: the Lean→eidos port is done. What's missing is the **product packaging** that turns a working library into a release.
