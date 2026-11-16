@@ -137,7 +137,7 @@ Opening = {
 }
 ```
 
-all field elements are Goldilocks elements (8 bytes each). the proof size of the retired design does not hold; the repaired proof is bounded by the ≤ 64 KB goal of [[soft3/proposals/proof-system-repair|the proof-system repair]].
+all field elements are Goldilocks elements (8 bytes each). the proof size of the retired design does not hold; the repaired proof is bounded by the ≤ 64 KB goal of [[soft3/projects/proof-system-repair|the proof-system repair]].
 
 ### verifier algorithm
 
@@ -156,7 +156,7 @@ all field elements are Goldilocks elements (8 bytes each). the proof size of the
 5. verify Brakedown opening at r against committed trace
 ```
 
-the verifier cost of the retired zheng design (a constant-size nox verifier) does not hold; the measured cost lives in [[soft3/proposals/proof-system-repair|the proof-system repair]].
+the verifier cost of the retired zheng design (a constant-size nox verifier) does not hold; the measured cost lives in [[soft3/projects/proof-system-repair|the proof-system repair]].
 
 ## memoization protocol
 
