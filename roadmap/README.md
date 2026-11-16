@@ -89,7 +89,7 @@ Pomodoro = 30 min. Total ≈ 27 pomodoros = 4.5 sessions.
 - **W7.1** Rewrite `README.md`: pitch → workspace table → Install (`cargo install --path cli`) → Quick Start (5-line `.ei` + `eidos check` output) → CLI usage examples → links to `docs/` and `specs/`. (1.5 pom)
 - **W7.2** `LICENSE` file at repo root. Match hemera's format. (0.25 pom)
 - **W7.3** `CHANGELOG.md` v0.1.0 section. Disclose T3.1 axiom and deferred items. (0.5 pom)
-- **W7.4** `roadmap/` standalone proposals: `stark-certificates.md`, `cybergraph-link.md`, `nox-model-grounding.md`, `mergeSort-theory.md`, `lsp-integration.md`. Each: motivation, prerequisites, sketch. (0.75 pom)
+- **W7.4** `roadmap/` standalone projects: `stark-certificates.md`, `cybergraph-link.md`, `nox-model-grounding.md`, `mergeSort-theory.md`, `lsp-integration.md`. Each: motivation, prerequisites, sketch. (0.75 pom)
 
 ### M8 — CI workflow (1.5 pom)
 - **W8.1** `.github/workflows/ci.yml`: jobs `cargo test --workspace`, `cargo clippy --workspace -- -D warnings`, `cargo fmt --check`, `cargo doc --workspace --no-deps`. Template off `~/cyber/hemera/.github/workflows/ci.yml`. (1 pom)

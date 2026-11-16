@@ -7,7 +7,7 @@ date: 2026-10-27
 ---
 # eidos replaces lean — the registry ladder
 
-owner's call (2026-10-27): lean is foreign, eidos is native; whatever eidos lacks to replace lean must be built. the proposal is `soft3/projects/assumptions-registry.md`; this page is eidos's side of it, in order, each milestone proving something the stack uses.
+owner's call (2026-10-27): lean is foreign, eidos is native; whatever eidos lacks to replace lean must be built. the project is `soft3/projects/assumptions-registry.md`; this page is eidos's side of it, in order, each milestone proving something the stack uses.
 
 | milestone | delivers | acceptance | when |
 |---|---|---|---|
