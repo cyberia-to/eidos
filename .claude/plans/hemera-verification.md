@@ -47,3 +47,9 @@ Hemera's manually translated reduce128 model is UNSAT; this is not an Eidos
 proof or an automatically verified Rust translation. The user explicitly
 requires actual hash-security resolution for production: the earlier choice
 of an alternative on uncertainty is not task completion; no profile is finalized.
+
+That slice is the record of 2026-09-11. The hash row has since been decided: the
+project page of "one proof — the repair of zheng" notes on 2026-10-16 that hemera
+0.4 (x⁷ in every round, 6 + 6 + 48 rounds, Poseidon2 reference matrices, 32-byte
+digest kept) is frozen on hemera `release/0.4` and under public cryptanalysis, so
+the inverse-S-box statements above are the 0.3 record.
