@@ -5,6 +5,7 @@
 pub mod ast;
 pub mod core;
 pub mod decl;
+mod globals;
 pub mod meta;
 
 pub use core::{elab_expr, ElabState};
