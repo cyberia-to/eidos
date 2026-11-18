@@ -9,10 +9,10 @@ use cyber_eidos::{
     elab::{elab_expr, ElabState},
     reduce::nf,
     stdlib::std_env,
-    surface::{check_file, check_strict_path, lex, parse_file, DeclKind},
+    surface::{check_path, check_strict_path, DeclKind},
 };
 use std::io::IsTerminal;
-use std::{env, fs, process};
+use std::{env, process};
 
 // ── style ────────────────────────────────────────────────────────────────────
 // ANSI only when stdout is a terminal — piped output stays clean.
@@ -183,25 +183,12 @@ fn cmd_check(args: &[String]) {
         die("check", "missing file — usage: eidos check <file.ei>");
     };
 
-    let src = match fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) => die("check", format!("cannot read '{path}': {e}")),
-    };
-
-    let tokens = match lex(&src) {
-        Ok(t) => t,
-        Err(e) => die("lex error", e),
-    };
-    let decls = match parse_file(&tokens) {
-        Ok(d) => d,
-        Err(e) => die("parse error", e),
-    };
-
     let mut env = std_env();
     let mut st = ElabState::new();
     st.add_stdlib();
 
-    match check_file(&decls, &mut st, &mut env) {
+    // check_path resolves `import` relative to the file's own directory.
+    match check_path(std::path::Path::new(path), &mut st, &mut env) {
         Ok(results) => {
             for r in &results {
                 let ty = dim(&pretty::pp(&r.ty));
