@@ -70,9 +70,12 @@ does not establish post-quantum security of a cryptographic construction.
 | `specs/` | Kernel, syntax and checking contracts |
 | `audit/` | Dated validation and release evidence |
 
-The full test suite currently embeds proof fixtures from sibling `../nox` and
-`../prysm` repositories. A standalone clone builds the library and CLI, but needs
-those fixtures to compile all tests. The snapshot audit pins their exact commits
-and records passing formatting, strict lint, documentation and functional checks.
+Eleven tests embed proof fixtures from the sibling `../nox` and `../prysm`
+repositories. They sit behind the off-by-default `sibling-proofs` feature, so
+`cargo test --workspace` builds and runs every target in a standalone clone. The
+full suite recorded in the snapshot audit needs those two checkouts and
+`cargo test --workspace --features cyber-eidos/sibling-proofs`. The audit pins
+the exact fixture commits and records passing formatting, strict lint,
+documentation and functional checks.
 
 Eidos (εἶδος) means form or essence in ancient Greek.

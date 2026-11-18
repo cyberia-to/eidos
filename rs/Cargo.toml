@@ -9,6 +9,12 @@ license.workspace    = true
 [lints]
 workspace = true
 
+[features]
+# Proof fixtures live in the sibling ../nox and ../prysm checkouts, not in this
+# repository. The tests that embed them compile only when those checkouts are
+# present, so they are off by default and a clean clone builds all targets.
+sibling-proofs = []
+
 [dependencies]
 # nox noun encoding / field arithmetic — path will point to ~/cyber/nox/rs once linked
 # cyber-nox  = { path = "../../nox/rs" }

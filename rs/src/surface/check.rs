@@ -363,24 +363,28 @@ mod tests {
         run(src).expect("eq_symm via rewrite [← h] should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_t2() {
         let src = include_str!("../../../../nox/proofs/T2.ei");
         run(src).expect("T2.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_gravity() {
         let src = include_str!("../../../../prysm/proofs/Gravity.ei");
         run(src).expect("Gravity.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_protocol() {
         let src = include_str!("../../../../prysm/proofs/Protocol.ei");
         run(src).expect("Protocol.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_sizing() {
         let path = std::path::Path::new(concat!(
@@ -395,30 +399,35 @@ mod tests {
             .expect("Sizing.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_container() {
         let src = include_str!("../../../../prysm/proofs/Container.ei");
         run(src).expect("Container.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_algebra() {
         let src = include_str!("../../../../prysm/proofs/Algebra.ei");
         run(src).expect("Algebra.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_fold() {
         let src = include_str!("../../../../prysm/proofs/Fold.ei");
         run(src).expect("Fold.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_model() {
         let src = include_str!("../../../../nox/proofs/Model.ei");
         run(src).expect("Model.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_t3() {
         let path = std::path::Path::new(concat!(
@@ -433,6 +442,7 @@ mod tests {
             .expect("T3.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_t1() {
         let path = std::path::Path::new(concat!(
@@ -447,6 +457,7 @@ mod tests {
             .expect("T1.ei should check");
     }
 
+    #[cfg(feature = "sibling-proofs")]
     #[test]
     fn proof_file_multimodal() {
         let path = std::path::Path::new(concat!(
